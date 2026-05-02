@@ -12,7 +12,7 @@ const getPrivateKey = () => {
     try {
         return fs.readFileSync(privateKeyPath, "utf8")
     } catch {
-        throw new ApiError(500, "Private key is not defined")
+        throw ApiError.internal("Private key is not defined")
     }
 }
 
@@ -21,7 +21,7 @@ export const generateTokens = async (userId: number) => {
         const user = await db.select().from(users).where(eq(users.id, userId))
 
         if (!user || user.length === 0) {
-            throw new ApiError(404, "User not found")
+            throw ApiError.notFound("User not found")
         }
 
         const currentUser = user[0]!
@@ -68,9 +68,31 @@ export const generateTokens = async (userId: number) => {
             throw error
         }
 
-        throw new ApiError(
-            500,
-            "Something went wrong while generating tokens"
-        )
+        throw ApiError.internal("Something went wrong while generating tokens")
     }
 }
+
+export const generateIdToken = (
+    user: { id: number; email: string; name: string },
+    issuer: string,
+    audience: string
+) => {
+    const privateKey = getPrivateKey();
+
+    return jwt.sign(
+        {
+            sub: String(user.id),
+            email: user.email,
+            name: user.name
+        },
+        privateKey,
+        {
+            algorithm: "RS256",
+            issuer,
+            audience,
+            expiresIn: process.env.ACCESS_TOKEN_EXPIRY ?? "15m"
+        } as SignOptions
+    );
+};
+
+
