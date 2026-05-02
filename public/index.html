@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HexAuth | Modern OIDC Auth Service</title>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tabler Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Theme toggle icon workaround */
+        html[data-theme='dark'] .icon-light { display: none; }
+        html[data-theme='dark'] .icon-dark { display: block; }
+        html:not([data-theme='dark']) .icon-dark { display: none; }
+        html:not([data-theme='dark']) .icon-light { display: block; }
+
+        /* Marquee Animation */
+        @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+            animation: marquee 25s linear infinite;
+        }
+        .animate-marquee:hover {
+            animation-play-state: paused;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-300 font-sans flex flex-col">
+    
+    <!-- Navbar -->
+    <nav class="border-b border-[var(--muted)]/20 bg-[var(--bg)]">
+        <div class="mx-auto max-w-6xl px-5 sm:px-6 py-4">
+            <div class="flex items-center justify-between">
+                <!-- Logo -->
+                <div class="flex items-center gap-2">
+                    <i class="ti ti-hexagon-letter-h text-2xl text-[var(--accent)]"></i>
+                    <span class="text-lg font-bold tracking-tight">HexAuth</span>
+                </div>
+                
+                <!-- Checkbox Hack for Mobile Menu -->
+                <input type="checkbox" id="mobile-menu-toggle" class="peer hidden" />
+                
+                <!-- Desktop Navigation -->
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="#features" class="text-sm font-medium text-[var(--muted)] hover:text-[var(--text)] transition-colors">Features</a>
+                    <a href="/dashboard" class="text-sm font-medium text-[var(--muted)] hover:text-[var(--text)] transition-colors">Dashboard</a>
+                    <a href="/user/login" class="text-sm font-medium text-[var(--muted)] hover:text-[var(--text)] transition-colors">Sign in</a>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center gap-4">
+                    <!-- Invisible Button with Siblings for Icon -->
+                    <div class="relative w-8 h-8 flex items-center justify-center text-[var(--muted)] hover:text-[var(--text)] transition-colors text-xl">
+                        <i class="ti ti-sun icon-dark"></i>
+                        <i class="ti ti-moon icon-light"></i>
+                        <button id="theme-toggle" type="button" class="absolute inset-0 opacity-0 cursor-pointer text-[0px]" title="Toggle theme"></button>
+                    </div>
+                    
+                    <div class="hidden md:flex items-center">
+                        <a href="/user/register" class="bg-[var(--accent)] text-[var(--accent-contrast)] px-4 py-2 text-sm font-semibold hover:opacity-90 transition-opacity rounded-xl">Get Started</a>
+                    </div>
+
+                    <!-- Mobile Menu Button -->
+                    <div class="flex items-center md:hidden">
+                        <label for="mobile-menu-toggle" class="cursor-pointer text-[var(--text)] p-1 hover:text-[var(--accent)] transition-colors">
+                            <i class="ti ti-menu-2 text-2xl"></i>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu Overlay -->
+        <div class="hidden peer-checked:block md:hidden border-t border-[var(--muted)]/20 bg-[var(--bg)]">
+            <div class="space-y-1 px-5 pb-4 pt-2">
+                <a href="#features" class="block py-2 text-sm font-medium text-[var(--muted)] hover:text-[var(--text)] transition-colors">Features</a>
+                <a href="/dashboard" class="block py-2 text-sm font-medium text-[var(--muted)] hover:text-[var(--text)] transition-colors">Dashboard</a>
+                <a href="/user/login" class="block py-2 text-sm font-medium text-[var(--muted)] hover:text-[var(--text)] transition-colors">Sign in</a>
+                <div class="pt-2 pb-1">
+                    <a href="/user/register" class="inline-block bg-[var(--accent)] text-[var(--accent-contrast)] px-4 py-2 text-sm font-semibold hover:opacity-90 transition-opacity rounded-xl">Get Started</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-grow mx-auto max-w-6xl px-5 py-16 sm:px-6 lg:py-24 w-full">
+        <!-- Hero Section matched to signin layout -->
+        <section class="grid gap-12 lg:grid-cols-[1fr_400px] lg:items-center">
+            <div class="max-w-2xl">
+                <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--muted)]">HexAuth Platform</p>
+                <h1 class="mt-4 text-4xl font-bold tracking-tight sm:text-5xl text-[var(--text)] leading-tight">
+                    One step auth solution
+                </h1>
+                <p class="mt-6 text-base leading-7 text-[var(--muted)]">
+                    Add secure login to your application in minutes. We handle the complex parts of user authentication so you can focus entirely on building your product.
+                </p>
+                <div class="mt-8 flex flex-wrap gap-4">
+                    <a href="/user/register" class="bg-[var(--accent)] text-[var(--accent-contrast)] px-6 py-3 text-sm font-semibold hover:opacity-90 transition-all border border-transparent rounded-xl">
+                        Get Started
+                    </a>
+                    <a href="/dashboard" class="bg-[var(--card)] text-[var(--text)] px-6 py-3 text-sm font-semibold hover:bg-[var(--muted)]/10 transition-colors border border-[var(--muted)]/20 rounded-xl">
+                        Go to Dashboard
+                    </a>
+                </div>
+            </div>
+            
+            <div class="bg-[var(--card)] p-8 border border-[var(--muted)]/10 space-y-6 hidden lg:block rounded-xl">
+                <div>
+                    <h3 class="text-sm font-semibold flex items-center gap-2"><i class="ti ti-user-check text-[var(--accent)]"></i> For Your Users</h3>
+                    <p class="mt-2 text-sm text-[var(--muted)]">A clean, reliable, and secure way for people to sign in to your favorite apps.</p>
+                </div>
+                <hr class="border-[var(--muted)]/20" />
+                <div>
+                    <h3 class="text-sm font-semibold flex items-center gap-2"><i class="ti ti-code text-[var(--accent)]"></i> For Developers</h3>
+                    <p class="mt-2 text-sm text-[var(--muted)]">Drop-in login pages and a simple dashboard to manage everything in one place.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features / Info Section -->
+        <section id="features" class="mt-24 sm:mt-32">
+            <div class="mb-10">
+                <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--muted)]">Core Features</p>
+                <h2 class="mt-3 text-2xl font-bold tracking-tight text-[var(--text)]">Everything you need</h2>
+            </div>
+            <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                
+                <!-- Feature 1 -->
+                <div class="flex flex-col bg-[var(--card)] p-6 border border-[var(--muted)]/10 hover:border-[var(--accent)]/50 transition-colors duration-300 rounded-xl">
+                    <dt class="flex items-center gap-x-3 text-sm font-semibold leading-7 text-[var(--text)]">
+                        <i class="ti ti-brush text-xl text-[var(--accent)]"></i>
+                        Ready-to-use Pages
+                    </dt>
+                    <dd class="mt-3 flex flex-auto flex-col text-sm leading-6 text-[var(--muted)]">
+                        <p class="flex-auto">Skip building login forms from scratch. We provide beautiful, pre-built sign-in and sign-up pages right out of the box.</p>
+                    </dd>
+                </div>
+                
+                <!-- Feature 2 -->
+                <div class="flex flex-col bg-[var(--card)] p-6 border border-[var(--muted)]/10 hover:border-[var(--accent)]/50 transition-colors duration-300 rounded-xl">
+                    <dt class="flex items-center gap-x-3 text-sm font-semibold leading-7 text-[var(--text)]">
+                        <i class="ti ti-layout-dashboard text-xl text-[var(--accent)]"></i>
+                        One Simple Dashboard
+                    </dt>
+                    <dd class="mt-3 flex flex-auto flex-col text-sm leading-6 text-[var(--muted)]">
+                        <p class="flex-auto">Keep track of all your applications and users easily. Manage everything from a single, intuitive developer console.</p>
+                    </dd>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="flex flex-col bg-[var(--card)] p-6 border border-[var(--muted)]/10 hover:border-[var(--accent)]/50 transition-colors duration-300 rounded-xl">
+                    <dt class="flex items-center gap-x-3 text-sm font-semibold leading-7 text-[var(--text)]">
+                        <i class="ti ti-shield-lock text-xl text-[var(--accent)]"></i>
+                        Secure by Default
+                    </dt>
+                    <dd class="mt-3 flex flex-auto flex-col text-sm leading-6 text-[var(--muted)]">
+                        <p class="flex-auto">Built on industry standards, ensuring your users' data stays safe without you needing to be a security expert.</p>
+                    </dd>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- How it Works Section -->
+        <section id="how-it-works" class="mt-24 sm:mt-32 border-t border-[var(--muted)]/10 pt-24 sm:pt-32">
+            <div class="mb-16 max-w-2xl">
+                <p class="text-xs font-semibold uppercase tracking-[0.35em] text-[var(--muted)]">Integration</p>
+                <h2 class="mt-3 text-2xl font-bold tracking-tight text-[var(--text)]">Three steps to secure login</h2>
+                <p class="mt-4 text-sm leading-6 text-[var(--muted)]">You don't need a Ph.D. in cryptography to keep your users safe. We've distilled the integration down to three simple steps.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 gap-8 md:grid-cols-3">
+                <div class="relative pl-12">
+                    <div class="absolute left-0 top-0 flex h-8 w-8 items-center justify-center border border-[var(--muted)]/20 bg-[var(--card)] text-sm font-bold text-[var(--text)] rounded-xl">1</div>
+                    <h3 class="text-base font-semibold text-[var(--text)]">Register App</h3>
+                    <p class="mt-2 text-sm text-[var(--muted)]">Create a project in your dashboard to get your unique Client ID and secret.</p>
+                </div>
+                <div class="relative pl-12">
+                    <div class="absolute left-0 top-0 flex h-8 w-8 items-center justify-center border border-[var(--muted)]/20 bg-[var(--card)] text-sm font-bold text-[var(--text)] rounded-xl">2</div>
+                    <h3 class="text-base font-semibold text-[var(--text)]">Configure URLs</h3>
+                    <p class="mt-2 text-sm text-[var(--muted)]">Tell us where to safely redirect your users after they successfully log in.</p>
+                </div>
+                <div class="relative pl-12">
+                    <div class="absolute left-0 top-0 flex h-8 w-8 items-center justify-center border border-[var(--muted)]/20 bg-[var(--card)] text-sm font-bold text-[var(--text)] rounded-xl">3</div>
+                    <h3 class="text-base font-semibold text-[var(--text)]">Add the Link</h3>
+                    <p class="mt-2 text-sm text-[var(--muted)]">Add a standard OpenID Connect login link to your app. That's it.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Testimonials Marquee Section -->
+        <section id="testimonials" class="mt-24 sm:mt-32 overflow-hidden border-y border-[var(--muted)]/10 bg-[var(--card)] py-16">
+            <div class="mx-auto max-w-6xl mb-12 px-5 sm:px-6">
+                <h2 class="text-xl font-bold tracking-tight text-[var(--text)] text-center">Trusted by modern developers</h2>
+            </div>
+            
+            <!-- Marquee Container -->
+            <div class="relative flex w-full overflow-hidden">
+                <!-- Double the content for seamless infinite scroll -->
+                <div class="flex animate-marquee whitespace-nowrap gap-6 pl-6 hover:cursor-pointer">
+                    <!-- Testimonial 1 -->
+                    <div class="inline-flex flex-col justify-between w-[300px] shrink-0 border border-[var(--muted)]/20 bg-[var(--bg)] p-6 whitespace-normal rounded-xl">
+                        <p class="text-sm italic text-[var(--muted)]">"HexAuth saved us weeks of development time. Drop-in login that actually looks good."</p>
+                        <div class="mt-4 flex items-center gap-3">
+                            <div class="h-8 w-8 bg-[var(--accent)] text-[var(--accent-contrast)] flex items-center justify-center font-bold text-xs rounded-lg">JD</div>
+                            <div class="text-xs font-semibold">John Doe<br><span class="text-[var(--muted)] font-normal">Indie Hacker</span></div>
+                        </div>
+                    </div>
+                    <!-- Testimonial 2 -->
+                    <div class="inline-flex flex-col justify-between w-[300px] shrink-0 border border-[var(--muted)]/20 bg-[var(--bg)] p-6 whitespace-normal rounded-xl">
+                        <p class="text-sm italic text-[var(--muted)]">"The easiest OpenID Connect implementation I've ever worked with. Simply brilliant."</p>
+                        <div class="mt-4 flex items-center gap-3">
+                            <div class="h-8 w-8 bg-[var(--muted)] text-[var(--bg)] flex items-center justify-center font-bold text-xs rounded-lg">SW</div>
+                            <div class="text-xs font-semibold">Sarah Williams<br><span class="text-[var(--muted)] font-normal">CTO, TechStart</span></div>
+                        </div>
+                    </div>
+                    <!-- Testimonial 3 -->
+                    <div class="inline-flex flex-col justify-between w-[300px] shrink-0 border border-[var(--muted)]/20 bg-[var(--bg)] p-6 whitespace-normal rounded-xl">
+                        <p class="text-sm italic text-[var(--muted)]">"Finally, an auth provider that doesn't feel like a bloated enterprise product."</p>
+                        <div class="mt-4 flex items-center gap-3">
+                            <div class="h-8 w-8 bg-[var(--text)] text-[var(--bg)] flex items-center justify-center font-bold text-xs rounded-lg">MR</div>
+                            <div class="text-xs font-semibold">Mike Roberts<br><span class="text-[var(--muted)] font-normal">Frontend Engineer</span></div>
+                        </div>
+                    </div>
+                    <!-- Testimonial 4 -->
+                    <div class="inline-flex flex-col justify-between w-[300px] shrink-0 border border-[var(--muted)]/20 bg-[var(--bg)] p-6 whitespace-normal rounded-xl">
+                        <p class="text-sm italic text-[var(--muted)]">"Zero friction integration. Had my users securely logging in within 10 minutes."</p>
+                        <div class="mt-4 flex items-center gap-3">
+                            <div class="h-8 w-8 bg-[var(--accent)] text-[var(--accent-contrast)] flex items-center justify-center font-bold text-xs rounded-lg">AL</div>
+                            <div class="text-xs font-semibold">Anna Lee<br><span class="text-[var(--muted)] font-normal">SaaS Founder</span></div>
+                        </div>
+                    </div>
+                    
+                    <!-- DUP -->
+                    <div class="inline-flex flex-col justify-between w-[300px] shrink-0 border border-[var(--muted)]/20 bg-[var(--bg)] p-6 whitespace-normal rounded-xl">
+                        <p class="text-sm italic text-[var(--muted)]">"HexAuth saved us weeks of development time. Drop-in login that actually looks good."</p>
+                        <div class="mt-4 flex items-center gap-3">
+                            <div class="h-8 w-8 bg-[var(--accent)] text-[var(--accent-contrast)] flex items-center justify-center font-bold text-xs rounded-lg">JD</div>
+                            <div class="text-xs font-semibold">John Doe<br><span class="text-[var(--muted)] font-normal">Indie Hacker</span></div>
+                        </div>
+                    </div>
+                    <!-- Testimonial 2 -->
+                    <div class="inline-flex flex-col justify-between w-[300px] shrink-0 border border-[var(--muted)]/20 bg-[var(--bg)] p-6 whitespace-normal rounded-xl">
+                        <p class="text-sm italic text-[var(--muted)]">"The easiest OpenID Connect implementation I've ever worked with. Simply brilliant."</p>
+                        <div class="mt-4 flex items-center gap-3">
+                            <div class="h-8 w-8 bg-[var(--muted)] text-[var(--bg)] flex items-center justify-center font-bold text-xs rounded-lg">SW</div>
+                            <div class="text-xs font-semibold">Sarah Williams<br><span class="text-[var(--muted)] font-normal">CTO, TechStart</span></div>
+                        </div>
+                    </div>
+                    <!-- Testimonial 3 -->
+                    <div class="inline-flex flex-col justify-between w-[300px] shrink-0 border border-[var(--muted)]/20 bg-[var(--bg)] p-6 whitespace-normal rounded-xl">
+                        <p class="text-sm italic text-[var(--muted)]">"Finally, an auth provider that doesn't feel like a bloated enterprise product."</p>
+                        <div class="mt-4 flex items-center gap-3">
+                            <div class="h-8 w-8 bg-[var(--text)] text-[var(--bg)] flex items-center justify-center font-bold text-xs rounded-lg">MR</div>
+                            <div class="text-xs font-semibold">Mike Roberts<br><span class="text-[var(--muted)] font-normal">Frontend Engineer</span></div>
+                        </div>
+                    </div>
+                    <!-- Testimonial 4 -->
+                    <div class="inline-flex flex-col justify-between w-[300px] shrink-0 border border-[var(--muted)]/20 bg-[var(--bg)] p-6 whitespace-normal rounded-xl">
+                        <p class="text-sm italic text-[var(--muted)]">"Zero friction integration. Had my users securely logging in within 10 minutes."</p>
+                        <div class="mt-4 flex items-center gap-3">
+                            <div class="h-8 w-8 bg-[var(--accent)] text-[var(--accent-contrast)] flex items-center justify-center font-bold text-xs rounded-lg">AL</div>
+                            <div class="text-xs font-semibold">Anna Lee<br><span class="text-[var(--muted)] font-normal">SaaS Founder</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Fade edges -->
+            <div class="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-[var(--card)] to-transparent z-10 pointer-events-none"></div>
+            <div class="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-[var(--card)] to-transparent z-10 pointer-events-none"></div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="mt-24 mb-10 sm:mt-32 sm:mb-16 text-center">
+            <h2 class="text-3xl font-bold tracking-tight text-[var(--text)] sm:text-4xl">Ready to secure your app?</h2>
+            <p class="mx-auto mt-4 max-w-xl text-base leading-7 text-[var(--muted)]">Stop worrying about user passwords, session management, and OAuth flows. Let HexAuth handle it.</p>
+            <div class="mt-8 flex items-center justify-center">
+                <a href="/user/register" class="bg-[var(--accent)] text-[var(--accent-contrast)] px-8 py-4 text-sm font-semibold hover:opacity-90 transition-all rounded-xl">
+                    Get Started
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-[var(--card)] border-t border-[var(--muted)]/20 pt-16 pb-8">
+        <div class="mx-auto max-w-6xl px-5 sm:px-6">
+            <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5">
+                <!-- Logo & Context -->
+                <div class="lg:col-span-2">
+                    <div class="flex items-center gap-2">
+                        <i class="ti ti-hexagon-letter-h text-2xl text-[var(--accent)]"></i>
+                        <span class="text-lg font-bold tracking-tight text-[var(--text)]">HexAuth</span>
+                    </div>
+                    <p class="mt-4 text-sm leading-6 text-[var(--muted)] max-w-sm">
+                        The easiest way to add secure, OIDC-compliant authentication to your applications. Built for developers who want to move fast.
+                    </p>
+                    <div class="mt-6 flex space-x-5">
+                        <a href="https://x.com/Pallab_dev" target="_blank" rel="noopener noreferrer" class="text-[var(--muted)] hover:text-[var(--text)] transition-colors">
+                            <span class="sr-only">X (Twitter)</span>
+                            <i class="ti ti-brand-x text-xl"></i>
+                        </a>
+                        <a href="https://github.com/pallabdev" target="_blank" rel="noopener noreferrer" class="text-[var(--muted)] hover:text-[var(--text)] transition-colors">
+                            <span class="sr-only">GitHub</span>
+                            <i class="ti ti-brand-github text-xl"></i>
+                        </a>
+                        <a href="mailto:auth@pallabdev.in" class="text-[var(--muted)] hover:text-[var(--text)] transition-colors">
+                            <span class="sr-only">Email</span>
+                            <i class="ti ti-mail text-xl"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Navigation -->
+                <div>
+                    <h3 class="text-sm font-semibold text-[var(--text)]">Product</h3>
+                    <ul class="mt-4 space-y-3">
+                        <li><a href="#features" class="text-sm text-[var(--muted)] hover:text-[var(--text)] transition-colors">Features</a></li>
+                        <li><a href="#how-it-works" class="text-sm text-[var(--muted)] hover:text-[var(--text)] transition-colors">Integration</a></li>
+                        <li><a href="/dashboard" class="text-sm text-[var(--muted)] hover:text-[var(--text)] transition-colors">Dashboard</a></li>
+                    </ul>
+                </div>
+
+                <!-- Resources -->
+                <div>
+                    <h3 class="text-sm font-semibold text-[var(--text)]">Resources</h3>
+                    <ul class="mt-4 space-y-3">
+                        <li><a href="#" class="text-sm text-[var(--muted)] hover:text-[var(--text)] transition-colors">Documentation</a></li>
+                        <li><a href="#" class="text-sm text-[var(--muted)] hover:text-[var(--text)] transition-colors">API Reference</a></li>
+                        <li><a href="#" class="text-sm text-[var(--muted)] hover:text-[var(--text)] transition-colors">Guides</a></li>
+                    </ul>
+                </div>
+
+                <!-- Legal -->
+                <div>
+                    <h3 class="text-sm font-semibold text-[var(--text)]">Legal</h3>
+                    <ul class="mt-4 space-y-3">
+                        <li><a href="#" class="text-sm text-[var(--muted)] hover:text-[var(--text)] transition-colors">Privacy Policy</a></li>
+                        <li><a href="#" class="text-sm text-[var(--muted)] hover:text-[var(--text)] transition-colors">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="mt-16 border-t border-[var(--muted)]/20 pt-8 flex flex-col md:flex-row md:items-center md:justify-between">
+                <p class="text-sm text-[var(--muted)]">
+                    &copy; 2026 Pallabdev. All rights reserved.
+                </p>
+                <div class="mt-4 md:mt-0 flex items-center gap-2 text-sm text-[var(--muted)]">
+                    <span class="flex h-2 w-2 rounded-full bg-green-500"></span>
+                    All systems operational
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- STRICT INSTRUCTION: DO NOT TOUCH JAVASCRIPT -->
+    <script>
+        const themeStorageKey = "hexauth-theme";
+        const themes = {
+            light: {
+                "--bg": "#f4f1ea",
+                "--text": "#1c1a18",
+                "--muted": "#6a6259",
+                "--card": "#ebe4d8",
+                "--accent": "#1f6f61",
+                "--accent-contrast": "#f5fffc"
+            },
+            dark: {
+                "--bg": "#111416",
+                "--text": "#ece7de",
+                "--muted": "#aea392",
+                "--card": "#1a1f22",
+                "--accent": "#e08a5b",
+                "--accent-contrast": "#22140f"
+            }
+        };
+
+        const themeToggle = document.getElementById("theme-toggle");
+        const getTheme = () => localStorage.getItem(themeStorageKey) || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        const setTheme = (theme) => {
+            Object.entries(themes[theme]).forEach(([key, value]) => document.documentElement.style.setProperty(key, value));
+            document.documentElement.dataset.theme = theme;
+            localStorage.setItem(themeStorageKey, theme);
+            themeToggle.textContent = theme === "dark" ? "Light" : "Dark";
+        };
+
+        setTheme(getTheme());
+        themeToggle.addEventListener("click", () => setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
+    </script>
+</body>
+</html>

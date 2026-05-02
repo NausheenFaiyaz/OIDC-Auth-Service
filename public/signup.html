@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HexAuth | Register</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-300 font-sans">
+    <main class="relative flex min-h-screen items-center justify-center p-4 overflow-hidden">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(21,94,99,0.18),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(217,134,82,0.18),transparent_28%)] pointer-events-none"></div>
+        
+        <div class="relative w-full max-w-[400px] rounded-xl border border-[var(--stroke)] bg-[var(--surface)] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.12)]">
+            <div class="flex justify-center mb-6">
+                <a href="/" class="inline-flex items-center gap-2">
+                    <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--accent)] text-lg font-bold text-[var(--accent-contrast)]">H</span>
+                    <span class="font-semibold tracking-wide">HexAuth</span>
+                </a>
+            </div>
+
+            <div class="text-center mb-8">
+                <h1 id="form-title" class="text-2xl font-semibold tracking-tight text-[var(--text)]">Create an account</h1>
+                <p id="helper-copy" class="mt-2 text-sm text-[var(--muted)]">Sign up to get started</p>
+            </div>
+
+            <div id="client-meta" class="mb-6 hidden rounded-lg border border-[var(--stroke)] bg-[var(--surface-soft)] p-4 text-sm text-[var(--muted)] text-center"></div>
+
+            <form id="signup-form" class="space-y-4">
+                <div>
+                    <label class="mb-1.5 block text-sm font-medium text-[var(--text)]" for="name">Full name</label>
+                    <input id="name" name="name" type="text" required class="w-full rounded-lg border border-[var(--stroke)] bg-[var(--surface-soft)] px-3.5 py-2.5 outline-none transition focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]" placeholder="Alex Doe">
+                </div>
+                <div>
+                    <label class="mb-1.5 block text-sm font-medium text-[var(--text)]" for="email">Email address</label>
+                    <input id="email" name="email" type="email" required class="w-full rounded-lg border border-[var(--stroke)] bg-[var(--surface-soft)] px-3.5 py-2.5 outline-none transition focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]" placeholder="alex@example.com">
+                </div>
+                <div>
+                    <label class="mb-1.5 block text-sm font-medium text-[var(--text)]" for="password">Password</label>
+                    <input id="password" name="password" type="password" required class="w-full rounded-lg border border-[var(--stroke)] bg-[var(--surface-soft)] px-3.5 py-2.5 outline-none transition focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]" placeholder="••••••••">
+                </div>
+                <button id="submit-button" type="submit" class="mt-2 w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-[var(--accent-contrast)] shadow-sm transition hover:opacity-90">Continue</button>
+            </form>
+
+            <div id="status" class="mt-4 hidden rounded-lg border border-transparent p-3 text-center text-sm font-medium"></div>
+
+            <p class="mt-6 text-center text-sm text-[var(--muted)]">
+                Already have an account? <a id="signin-link" class="font-medium text-[var(--accent)] hover:underline" href="/user/login">Sign in</a>
+            </p>
+        </div>
+    </main>
+
+    <script>
+        const tokenKey = "hexauth-access-token";
+        const userKey = "hexauth-user";
+        
+        // Ensure theme matches standard site style (light by default for clean look)
+        const applyTheme = () => {
+            const themes = {
+                light: {
+                    "--bg": "#fafafa",
+                    "--text": "#111827",
+                    "--muted": "#6b7280",
+                    "--stroke": "#e5e7eb",
+                    "--surface": "#ffffff",
+                    "--surface-soft": "#f9fafb",
+                    "--accent": "#0f172a",
+                    "--accent-contrast": "#ffffff"
+                }
+            };
+            Object.entries(themes.light).forEach(([key, value]) => document.documentElement.style.setProperty(key, value));
+        };
+        applyTheme();
+
+        const params = new URLSearchParams(window.location.search);
+        const clientId = params.get("client_id");
+        const redirectUri = params.get("redirect_uri");
+        const state = params.get("state");
+        const nextUrl = params.get("next");
+        const form = document.getElementById("signup-form");
+        const statusBox = document.getElementById("status");
+        const clientMeta = document.getElementById("client-meta");
+        const signinLink = document.getElementById("signin-link");
+        const helperCopy = document.getElementById("helper-copy");
+        const formTitle = document.getElementById("form-title");
+        const submitButton = document.getElementById("submit-button");
+
+        const setStatus = (message, type) => {
+            statusBox.textContent = message;
+            statusBox.className = "mt-4 rounded-lg border p-3 text-center text-sm font-medium";
+            statusBox.classList.remove("hidden");
+            statusBox.style.borderColor = type === "error" ? "#fca5a5" : "var(--stroke)";
+            statusBox.style.background = type === "error" ? "#fef2f2" : "var(--surface-soft)";
+            statusBox.style.color = type === "error" ? "#991b1b" : "var(--text)";
+        };
+
+        const persistSession = (result) => {
+            localStorage.setItem(tokenKey, result.accessToken);
+            localStorage.setItem(userKey, JSON.stringify(result.user));
+        };
+
+        const setOwnerMode = () => {
+            signinLink.href = nextUrl ? `/user/login?next=${encodeURIComponent(nextUrl)}` : "/user/login";
+            formTitle.textContent = "Create an account";
+            helperCopy.textContent = "to continue to HexAuth";
+            submitButton.textContent = "Continue";
+        };
+
+        const setClientMode = async () => {
+            signinLink.href = `/user/login${window.location.search}`;
+            formTitle.textContent = "Create an account";
+            helperCopy.textContent = "to continue to application";
+            submitButton.textContent = "Continue";
+
+            try {
+                const response = await fetch(`/client/meta?client_id=${encodeURIComponent(clientId)}${redirectUri ? `&redirect_uri=${encodeURIComponent(redirectUri)}` : ""}`);
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    throw new Error(result.message || "Unable to load project");
+                }
+
+                const { client } = result.data;
+                helperCopy.textContent = `to continue to ${client.applicationName}`;
+            } catch (error) {
+                setStatus(error.message || "Unable to load project", "error");
+            }
+        };
+
+        if (!clientId && localStorage.getItem(tokenKey) && localStorage.getItem(userKey)) {
+            window.location.href = nextUrl || "/dashboard";
+        }
+
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            setStatus(clientId ? "Creating account..." : "Creating account...", "info");
+
+            const payload = {
+                name: form.name.value,
+                email: form.email.value,
+                password: form.password.value,
+                clientId: clientId || undefined,
+                redirectUri: redirectUri || undefined,
+                state: state || undefined
+            };
+
+            try {
+                const response = await fetch(window.location.pathname, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    throw new Error(result.message || "Register failed");
+                }
+
+                if (clientId) {
+                    setStatus("Success. Redirecting...", "info");
+                    setTimeout(() => {
+                        window.location.href = result.data.redirectTo;
+                    }, 500);
+                    return;
+                }
+
+                persistSession(result.data);
+                setStatus("Success. Redirecting...", "info");
+                setTimeout(() => {
+                    window.location.href = nextUrl || "/dashboard";
+                }, 350);
+            } catch (error) {
+                setStatus(error.message || "Register failed", "error");
+            }
+        });
+
+        if (clientId) {
+            setClientMode();
+        } else {
+            setOwnerMode();
+        }
+    </script>
+</body>
+</html>
