@@ -20,7 +20,7 @@ const getPublicKey = () => {
     try {
         return fs.readFileSync(publicKeyPath, "utf8");
     } catch {
-        throw new ApiError(500, "Public key is not defined");
+        throw ApiError.internal("Public key is not defined");
     }
 }
 
@@ -46,7 +46,7 @@ export const verifyAccessToken = (
     const token = getBearerToken(req.headers.authorization);
 
     if (!token) {
-        throw new ApiError(401, "Access token required");
+        throw ApiError.unauthorized("Access token required");
     }
 
     try {
@@ -55,20 +55,22 @@ export const verifyAccessToken = (
         });
 
         if (typeof decodedToken === "string" || typeof decodedToken.id !== "number") {
-            throw new ApiError(401, "Invalid access token");
+            throw ApiError.unauthorized("Invalid access token");
         }
 
         req.user = decodedToken as AccessTokenPayload;
         next();
     } catch (error) {
         if (error instanceof jwt.TokenExpiredError) {
-            throw new ApiError(401, "Access token expired");
+            throw ApiError.unauthorized("Access token expired");
         }
 
         if (error instanceof jwt.JsonWebTokenError) {
-            throw new ApiError(401, "Invalid access token");
+            throw ApiError.unauthorized("Invalid access token");
         }
 
         throw error;
     }
 }
+
+

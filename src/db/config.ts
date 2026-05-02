@@ -42,6 +42,16 @@ export const ensureDatabaseSchema = async () => {
     `));
 
     await db.execute(sql.raw(`
+        ALTER TABLE "authorization_codes"
+        ADD COLUMN IF NOT EXISTS "code_challenge" text;
+    `));
+
+    await db.execute(sql.raw(`
+        ALTER TABLE "authorization_codes"
+        ADD COLUMN IF NOT EXISTS "code_challenge_method" varchar(10);
+    `));
+
+    await db.execute(sql.raw(`
         CREATE INDEX IF NOT EXISTS "authorization_codes_expires_at_idx"
         ON "authorization_codes" ("expires_at");
     `));

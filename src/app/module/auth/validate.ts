@@ -3,7 +3,9 @@ import { z } from "zod"
 const authClientFields = {
     clientId: z.string().uuid(),
     redirectUri: z.string().url().optional(),
-    state: z.string().max(2048).optional()
+    state: z.string().max(2048).optional(),
+    codeChallenge: z.string().min(43).max(128).optional(),
+    codeChallengeMethod: z.enum(["S256", "plain"]).optional()
 }
 
 export const userSignup = z.object({
@@ -49,5 +51,6 @@ export const tokenExchange = z.object({
     code: z.string(),
     clientId: z.string(),
     clientSecret: z.string(),
-    redirectUri: z.string().optional()
+    redirectUri: z.string().url().optional(),
+    codeVerifier: z.string().min(43).max(128).optional()
 })

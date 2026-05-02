@@ -28,6 +28,8 @@ export const authorizationCodes = pgTable("authorization_codes", {
     code: text("code").primaryKey(),
     clientId: varchar("client_id", { length: 255 }).notNull(),
     redirectUri: text("redirect_uri").notNull(),
+    codeChallenge: text("code_challenge"),
+    codeChallengeMethod: varchar("code_challenge_method", { length: 10 }),
     userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     consumedAt: timestamp("consumed_at", { withTimezone: true }),

@@ -1,9 +1,9 @@
 import { and, eq, isNull, lt } from "drizzle-orm";
 import bcrypt from "bcryptjs";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 import { db } from "../../../db/config.js";
 import { authorizationCodes, oAuthClients, users } from "../../../db/schema.js";
-import { generateTokens } from "../../common/utils/jwt.utils.js";
+import { generateIdToken, generateTokens } from "../../common/utils/jwt.utils.js";
 import ApiError from "../../common/utils/ApiError.js";
 
 const sanitizeUser = (user: any) => {
@@ -33,6 +33,8 @@ type AuthorizationRequest = {
     clientId: string;
     redirectUri: string | undefined;
     state: string | undefined;
+    codeChallenge?: string;
+    codeChallengeMethod?: "S256" | "plain";
 };
 
 const AUTHORIZATION_CODE_TTL_MS = 5 * 60 * 1000;
@@ -41,7 +43,7 @@ const getOAuthClientByClientId = async (clientId: string) => {
     const clients = await db.select().from(oAuthClients).where(eq(oAuthClients.clientId, clientId));
 
     if (clients.length < 1) {
-        throw new ApiError(404, "OAuth client not found");
+        throw ApiError.notFound("OAuth client not found");
     }
 
     return clients[0]!;
@@ -54,10 +56,58 @@ const getUserByEmail = async (email: string) => {
 
 const getValidatedRedirectUri = (registeredRedirectUri: string, redirectUri?: string) => {
     if (redirectUri && redirectUri !== registeredRedirectUri) {
-        throw new ApiError(400, "Invalid redirect URI");
+        throw ApiError.badRequest("Invalid redirect URI");
     }
 
     return redirectUri ?? registeredRedirectUri;
+};
+
+const toBase64Url = (value: Buffer) => value
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+
+const safeEquals = (left: string, right: string) => {
+    const leftBuffer = Buffer.from(left);
+    const rightBuffer = Buffer.from(right);
+
+    if (leftBuffer.length !== rightBuffer.length) {
+        return false;
+    }
+
+    return timingSafeEqual(leftBuffer, rightBuffer);
+};
+
+const verifyPkce = (
+    codeVerifier: string | undefined,
+    codeChallenge: string | null,
+    codeChallengeMethod: string | null
+) => {
+    if (!codeChallenge) {
+        return;
+    }
+
+    if (!codeVerifier) {
+        throw ApiError.badRequest("code_verifier is required");
+    }
+
+    if (codeChallengeMethod === "plain") {
+        if (!safeEquals(codeVerifier, codeChallenge)) {
+            throw ApiError.badRequest("Invalid code_verifier");
+        }
+        return;
+    }
+
+    if (codeChallengeMethod !== "S256") {
+        throw ApiError.badRequest("Unsupported code_challenge_method");
+    }
+
+    const verifierDigest = toBase64Url(createHash("sha256").update(codeVerifier).digest());
+
+    if (!safeEquals(verifierDigest, codeChallenge)) {
+        throw ApiError.badRequest("Invalid code_verifier");
+    }
 };
 
 const buildRedirectUrl = (redirectUri: string, code: string, state?: string) => {
@@ -75,6 +125,8 @@ const createAuthorizationCode = async ({
     clientId,
     redirectUri,
     state,
+    codeChallenge,
+    codeChallengeMethod,
     userId
 }: AuthorizationRequest & { userId: number }) => {
     const client = await getOAuthClientByClientId(clientId);
@@ -84,10 +136,16 @@ const createAuthorizationCode = async ({
 
     await db.delete(authorizationCodes).where(lt(authorizationCodes.expiresAt, new Date()));
 
+    if (codeChallenge && !codeChallengeMethod) {
+        throw ApiError.badRequest("code_challenge_method is required when code_challenge is provided");
+    }
+
     const insertedCodes = await db.insert(authorizationCodes).values({
         code,
         clientId: client.clientId,
         redirectUri: resolvedRedirectUri,
+        codeChallenge: codeChallenge ?? null,
+        codeChallengeMethod: codeChallengeMethod ?? null,
         userId,
         expiresAt
     }).returning({
@@ -101,7 +159,7 @@ const createAuthorizationCode = async ({
     const insertedCode = insertedCodes[0];
 
     if (!insertedCode) {
-        throw new ApiError(500, "Authorization code could not be saved");
+        throw ApiError.internal("Authorization code could not be saved");
     }
 
     console.log("[auth] authorization code created", {
@@ -151,7 +209,7 @@ export const registerOAuthClientService = async (
     }).returning();
 
     if (client.length < 1) {
-        throw new ApiError(500, "OAuth client registration failed");
+        throw ApiError.internal("OAuth client registration failed");
     }
 
     return sanitizeClient(client[0]!);
@@ -173,7 +231,7 @@ export const updateOAuthClientService = async (
         .returning();
 
     if (updatedClient.length < 1) {
-        throw new ApiError(404, "Project not found");
+        throw ApiError.notFound("Project not found");
     }
 
     return sanitizeClient(updatedClient[0]!);
@@ -185,7 +243,7 @@ export const deleteOAuthClientService = async (ownerUserId: number, clientId: st
         .returning();
 
     if (deletedClient.length < 1) {
-        throw new ApiError(404, "Project not found");
+        throw ApiError.notFound("Project not found");
     }
 
     return sanitizeClient(deletedClient[0]!);
@@ -201,7 +259,7 @@ export const getProjectsForUserService = async (ownerUserId: number) => {
 
 export const dashboardSignupService = async (email: string, name: string, password: string) => {
     if (await getUserByEmail(email)) {
-        throw new ApiError(409, "User already exists");
+        throw ApiError.conflict("User already exists");
     }
 
     const hashPassword = await bcrypt.hash(password, 10);
@@ -212,7 +270,7 @@ export const dashboardSignupService = async (email: string, name: string, passwo
     }).returning();
 
     if (createdUsers.length < 1) {
-        throw new ApiError(500, "User registration failed");
+        throw ApiError.internal("User registration failed");
     }
 
     const user = createdUsers[0]!;
@@ -228,11 +286,11 @@ export const dashboardSigninService = async (email: string, password: string) =>
     const user = await getUserByEmail(email);
 
     if (!user) {
-        throw new ApiError(404, "User not found");
+        throw ApiError.notFound("User not found");
     }
 
     if (!await bcrypt.compare(password, user.passwordHash)) {
-        throw new ApiError(401, "Invalid credentials");
+        throw ApiError.unauthorized("Invalid credentials");
     }
 
     const tokens = await generateTokens(user.id);
@@ -250,11 +308,11 @@ export const signupService = async (
     authorizationRequest: AuthorizationRequest
 ) => {
     if (!email || !name || !password) {
-        throw new ApiError(400, "Bad Request");
+        throw ApiError.badRequest("Bad Request");
     }
 
     if (await getUserByEmail(email)) {
-        throw new ApiError(409, "User already exist");
+        throw ApiError.conflict("User already exist");
     }
 
     const hashPassword = await bcrypt.hash(password, 10);
@@ -265,7 +323,7 @@ export const signupService = async (
     }).returning();
 
     if (!user.length) {
-        throw new ApiError(500, "User Registration Failed");
+        throw ApiError.internal("User Registration Failed");
     }
 
     return createAuthorizationCode({
@@ -280,17 +338,17 @@ export const signinService = async (
     authorizationRequest: AuthorizationRequest
 ) => {
     if (!email || !password) {
-        throw new ApiError(401, "Invalid Credential, Credential Required");
+        throw ApiError.unauthorized("Invalid Credential, Credential Required");
     }
 
     const user = await getUserByEmail(email);
 
     if (!user) {
-        throw new ApiError(409, "User Not Found");
+        throw ApiError.conflict("User Not Found");
     }
 
     if (!await bcrypt.compare(password, user.passwordHash)) {
-        throw new ApiError(401, "Invalid Credential!");
+        throw ApiError.unauthorized("Invalid Credential!");
     }
 
     return createAuthorizationCode({
@@ -303,7 +361,7 @@ export const userInfoService = async (userId: number) => {
     const user = await db.select().from(users).where(eq(users.id, userId));
 
     if (user.length < 1) {
-        throw new ApiError(404, "User Not Found");
+        throw ApiError.notFound("User Not Found");
     }
 
     return sanitizeUser(user[0]);
@@ -313,7 +371,9 @@ export const exchangeAuthorizationCodeService = async (
     code: string,
     clientId: string,
     clientSecret: string,
-    redirectUri?: string
+    redirectUri?: string,
+    codeVerifier?: string,
+    issuer?: string
 ) => {
     console.log("[auth] authorization code exchange requested", {
         code,
@@ -324,7 +384,7 @@ export const exchangeAuthorizationCodeService = async (
     const client = await getOAuthClientByClientId(clientId);
 
     if (client.clientSecret !== clientSecret) {
-        throw new ApiError(401, "Invalid client credentials");
+        throw ApiError.unauthorized("Invalid client credentials");
     }
 
     const matchedCodes = await db.select()
@@ -335,22 +395,23 @@ export const exchangeAuthorizationCodeService = async (
 
     if (!authorizationCode) {
         console.warn("[auth] authorization code not found", { code, clientId });
-        throw new ApiError(400, "Invalid authorization code");
+        throw ApiError.badRequest("Invalid authorization code");
     }
 
     if (authorizationCode.expiresAt.getTime() < Date.now()) {
-        throw new ApiError(400, "Authorization code expired");
+        throw ApiError.badRequest("Authorization code expired");
     }
 
     if (authorizationCode.consumedAt) {
-        throw new ApiError(400, "Authorization code already used");
+        throw ApiError.badRequest("Authorization code already used");
     }
 
     const resolvedRedirectUri = getValidatedRedirectUri(client.redirectUrl, redirectUri);
 
     if (authorizationCode.clientId !== client.clientId || authorizationCode.redirectUri !== resolvedRedirectUri) {
-        throw new ApiError(400, "Authorization code does not match client");
+        throw ApiError.badRequest("Authorization code does not match client");
     }
+    verifyPkce(codeVerifier, authorizationCode.codeChallenge, authorizationCode.codeChallengeMethod);
 
     const consumedAt = new Date();
     const updatedCodes = await db.update(authorizationCodes)
@@ -366,7 +427,7 @@ export const exchangeAuthorizationCodeService = async (
 
     if (updatedCodes.length < 1) {
         console.warn("[auth] authorization code already consumed", { code, clientId });
-        throw new ApiError(400, "Authorization code already used");
+        throw ApiError.badRequest("Authorization code already used");
     }
 
     console.log("[auth] authorization code consumed", {
@@ -378,10 +439,23 @@ export const exchangeAuthorizationCodeService = async (
 
     const tokens = await generateTokens(authorizationCode.userId);
     const user = await userInfoService(authorizationCode.userId);
+    const idToken = generateIdToken(
+        {
+            id: user.id,
+            email: user.email,
+            name: user.name
+        },
+        issuer ?? process.env.OIDC_ISSUER ?? "http://localhost:8000",
+        client.clientId
+    );
 
     return {
         ...tokens,
-        tokenType: "Bearer",
+        id_token: idToken,
+        token_type: "Bearer",
+        expires_in: 900,
         user
     };
 };
+
+

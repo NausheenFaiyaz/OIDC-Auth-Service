@@ -50,7 +50,9 @@ const getAuthorizationPayload = (req: Request) => {
     return {
         clientId: getRequestValue(body.clientId) ?? getRequestValue(body.client_id) ?? getRequestValue(req.query.client_id),
         redirectUri: getRequestValue(body.redirectUri) ?? getRequestValue(body.redirect_uri) ?? getRequestValue(req.query.redirect_uri),
-        state: getRequestValue(body.state) ?? getRequestValue(req.query.state)
+        state: getRequestValue(body.state) ?? getRequestValue(req.query.state),
+        codeChallenge: getRequestValue(body.codeChallenge) ?? getRequestValue(body.code_challenge) ?? getRequestValue(req.query.code_challenge),
+        codeChallengeMethod: getRequestValue(body.codeChallengeMethod) ?? getRequestValue(body.code_challenge_method) ?? getRequestValue(req.query.code_challenge_method)
     };
 };
 
@@ -62,7 +64,7 @@ const requireUserId = (req: AuthenticatedRequest) => {
     const userId = req.user?.id;
 
     if (!userId) {
-        throw new ApiError(401, "Invalid access token");
+        throw ApiError.unauthorized("Invalid access token");
     }
 
     return userId;
@@ -104,47 +106,47 @@ export const getClientMeta = async (req: Request, res: Response) => {
     const { clientId, redirectUri } = getAuthorizationPayload(req);
 
     if (!clientId) {
-        throw new ApiError(400, "client_id is required");
+        throw ApiError.badRequest("client_id is required");
     }
 
     const response = await getOAuthClientService(clientId, redirectUri);
-    return new ApiResponse(res, 200, "Client loaded successfully", response);
+    return ApiResponse.ok(res, "Client loaded successfully", response);
 };
 
 export const dashboardSignupController = async (req: Request, res: Response) => {
     const result = await dashboardSignup.safeParseAsync(req.body);
 
     if (!result.success) {
-        throw new ApiError(400, "Validation Error");
+        throw ApiError.badRequest("Validation Error");
     }
 
     const { email, name, password } = result.data;
     const response = await dashboardSignupService(email, name, password);
-    return new ApiResponse(res, 201, "User account created successfully", response);
+    return ApiResponse.created(res, "User account created successfully", response);
 };
 
 export const dashboardSigninController = async (req: Request, res: Response) => {
     const result = await dashboardLogin.safeParseAsync(req.body);
 
     if (!result.success) {
-        throw new ApiError(400, "Validation Error");
+        throw ApiError.badRequest("Validation Error");
     }
 
     const { email, password } = result.data;
     const response = await dashboardSigninService(email, password);
-    return new ApiResponse(res, 200, "User signed in successfully", response);
+    return ApiResponse.ok(res, "User signed in successfully", response);
 };
 
 export const getDashboardProjectsController = async (req: AuthenticatedRequest, res: Response) => {
     const response = await getProjectsForUserService(requireUserId(req));
-    return new ApiResponse(res, 200, "Projects fetched successfully", response);
+    return ApiResponse.ok(res, "Projects fetched successfully", response);
 };
 
 export const registerOAuthClient = async (req: AuthenticatedRequest, res: Response) => {
     const result = await oAuthClientRegister.safeParseAsync(req.body);
 
     if (!result.success) {
-        throw new ApiError(400, "Validation Error");
+        throw ApiError.badRequest("Validation Error");
     }
 
     const { applicationName, applicationUrl, contactEmail, redirectUrl } = result.data;
@@ -156,35 +158,35 @@ export const registerOAuthClient = async (req: AuthenticatedRequest, res: Respon
         redirectUrl
     );
 
-    return new ApiResponse(res, 201, "OAuth client registered successfully", response);
+    return ApiResponse.created(res, "OAuth client registered successfully", response);
 };
 
 export const updateOAuthClient = async (req: AuthenticatedRequest, res: Response) => {
     const result = await oAuthClientUpdate.safeParseAsync(req.body);
 
     if (!result.success) {
-        throw new ApiError(400, "Validation Error");
+        throw ApiError.badRequest("Validation Error");
     }
 
     const clientId = getRequestValue(req.params.clientId);
 
     if (!clientId) {
-        throw new ApiError(400, "clientId is required");
+        throw ApiError.badRequest("clientId is required");
     }
 
     const response = await updateOAuthClientService(requireUserId(req), clientId, result.data);
-    return new ApiResponse(res, 200, "Project updated successfully", response);
+    return ApiResponse.ok(res, "Project updated successfully", response);
 };
 
 export const deleteOAuthClient = async (req: AuthenticatedRequest, res: Response) => {
     const clientId = getRequestValue(req.params.clientId);
 
     if (!clientId) {
-        throw new ApiError(400, "clientId is required");
+        throw ApiError.badRequest("clientId is required");
     }
 
     const response = await deleteOAuthClientService(requireUserId(req), clientId);
-    return new ApiResponse(res, 200, "Project deleted successfully", response);
+    return ApiResponse.ok(res, "Project deleted successfully", response);
 };
 
 export const signup = async (req: Request, res: Response) => {
@@ -201,17 +203,19 @@ export const signup = async (req: Request, res: Response) => {
     const result = await userSignup.safeParseAsync(payload);
 
     if (!result.success) {
-        throw new ApiError(400, "Validation Error");
+        throw ApiError.badRequest("Validation Error");
     }
 
-    const { clientId, email, name, password, redirectUri, state } = result.data;
+    const { clientId, email, name, password, redirectUri, state, codeChallenge, codeChallengeMethod } = result.data;
     const response = await signupService(email, name, password, {
         clientId,
         redirectUri,
-        state
+        state,
+        ...(codeChallenge ? { codeChallenge } : {}),
+        ...(codeChallengeMethod ? { codeChallengeMethod } : {})
     });
 
-    return new ApiResponse(res, 201, "User created successfully", response);
+    return ApiResponse.created(res, "User created successfully", response);
 };
 
 export const signin = async (req: Request, res: Response) => {
@@ -228,21 +232,23 @@ export const signin = async (req: Request, res: Response) => {
     const result = await userLogin.safeParseAsync(payload);
 
     if (!result.success) {
-        throw new ApiError(400, "Validation Error");
+        throw ApiError.badRequest("Validation Error");
     }
 
-    const { clientId, email, password, redirectUri, state } = result.data;
+    const { clientId, email, password, redirectUri, state, codeChallenge, codeChallengeMethod } = result.data;
     const response = await signinService(email, password, {
         clientId,
         redirectUri,
-        state
+        state,
+        ...(codeChallenge ? { codeChallenge } : {}),
+        ...(codeChallengeMethod ? { codeChallengeMethod } : {})
     });
 
     if (!response) {
-        throw new ApiError(401, "User Login failed");
+        throw ApiError.unauthorized("User Login failed");
     }
 
-    return new ApiResponse(res, 200, "Authorization code generated successfully", response);
+    return ApiResponse.ok(res, "Authorization code generated successfully", response);
 };
 
 export const token = async (req: Request, res: Response) => {
@@ -251,28 +257,35 @@ export const token = async (req: Request, res: Response) => {
         ...body,
         clientId: getRequestValue(body.clientId) ?? getRequestValue(body.client_id),
         clientSecret: getRequestValue(body.clientSecret) ?? getRequestValue(body.client_secret),
-        redirectUri: getRequestValue(body.redirectUri) ?? getRequestValue(body.redirect_uri)
+        redirectUri: getRequestValue(body.redirectUri) ?? getRequestValue(body.redirect_uri),
+        codeVerifier: getRequestValue(body.codeVerifier) ?? getRequestValue(body.code_verifier)
     };
     const result = await tokenExchange.safeParseAsync(payload);
 
     if (!result.success) {
-        throw new ApiError(400, "Validation Error");
+        throw ApiError.badRequest("Validation Error");
     }
 
-    const { clientId, clientSecret, code, redirectUri } = result.data;
+    const { clientId, clientSecret, code, redirectUri, codeVerifier } = result.data;
+    const issuer = `${req.protocol}://${req.get("host") ?? "localhost:8000"}`;
     const response = await exchangeAuthorizationCodeService(
         code,
         clientId,
         clientSecret,
-        redirectUri
+        redirectUri,
+        codeVerifier,
+        issuer
     );
-
-    return new ApiResponse(res, 200, "Tokens generated successfully", response);
+    return res.status(200).json(response);
 };
 
 export const userinfo = async (req: AuthenticatedRequest, res: Response) => {
     const response = await userInfoService(requireUserId(req));
-    return new ApiResponse(res, 200, "User fetched successfully", response);
+    return res.status(200).json({
+        sub: String(response.id),
+        email: response.email,
+        name: response.name
+    });
 };
 
 export const certs = (_: Request, res: Response) => {
@@ -304,7 +317,16 @@ export const openIdConfig = (req: Request, res: Response) => {
         jwks_uri: `${baseURL}/certs`,
         registration_endpoint: `${baseURL}/client/register`,
         response_types_supported: ["code"],
+        response_modes_supported: ["query"],
         grant_types_supported: ["authorization_code"],
+        scopes_supported: ["openid", "profile", "email"],
+        subject_types_supported: ["public"],
+        claims_supported: ["sub", "email", "name"],
+        id_token_signing_alg_values_supported: ["RS256"],
+        code_challenge_methods_supported: ["S256", "plain"],
         token_endpoint_auth_methods_supported: ["client_secret_post"]
     });
 };
+
+
+

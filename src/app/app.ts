@@ -47,6 +47,7 @@ const createApplication = () => {
         if (error instanceof ApiError) {
             res.status(error.statusCode).json({
                 message: error.message,
+                errors: error.errors,
                 success: false
             });
             return;
