@@ -18,7 +18,7 @@ const createApplication = () => {
     app.use(cors(
         // all all
         {
-            origin: "*",
+            origin: process.env.CORS_ORIGIN || "*",
             methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             allowedHeaders: ["Content-Type", "Authorization"]
         }
