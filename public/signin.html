@@ -3,64 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HexAuth | Login</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>TokenShinobi | Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg:#f1f0ea; --panel:#c5d8e8; --ink:#202226; --muted:#5f646f; --field:#f7f4ec; --line:#202226; --accent:#b9cde0; }
+        * { box-sizing:border-box; }
+        body { margin:0; min-height:100vh; display:grid; place-items:center; background:radial-gradient(circle at top,#f6f4ef 0%,var(--bg) 60%); color:var(--ink); font-family:"DM Sans",sans-serif; padding:18px; }
+        .card { width:min(430px,100%); background:var(--panel); border:3px solid var(--line); border-radius:10px; padding:30px 26px; box-shadow:8px 8px 0 #000; }
+        .brand { text-decoration:none; color:var(--ink); font-family:"Abril Fatface",serif; font-size:30px; }
+        h1 { margin:12px 0 6px; font-size:34px; line-height:1; }
+        p { margin:0 0 18px; color:var(--muted); font-weight:700; }
+        label { display:block; font-size:14px; margin:12px 0 6px; font-weight:700; }
+        input { width:100%; border:3px solid var(--line); border-radius:8px; background:var(--field); padding:12px 14px; font-size:18px; box-shadow:5px 5px 0 #000; }
+        button { margin-top:26px; width:100%; border:3px solid var(--line); border-radius:8px; background:var(--field); padding:12px; font-size:30px; font-family:"Abril Fatface",serif; box-shadow:5px 5px 0 #000; cursor:pointer; }
+        #status { margin-top:12px; }
+        .small { margin-top:14px; font-size:14px; color:var(--ink); }
+        .small a { color:var(--ink); font-weight:700; }`r`n        .hidden { display:none; }
+    </style>
 </head>
-<body class="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-300 font-sans">
-    <main class="relative flex min-h-screen items-center justify-center p-4 overflow-hidden">
-        <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(31,111,97,0.18),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(224,138,91,0.18),transparent_30%)] pointer-events-none"></div>
-        
-        <div class="relative w-full max-w-[400px] rounded-xl border border-[var(--stroke)] bg-[var(--surface)] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.12)]">
-            <div class="flex justify-center mb-6">
-                <a href="/" class="inline-flex items-center gap-2">
-                    <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--accent)] text-lg font-bold text-[var(--accent-contrast)]">H</span>
-                    <span class="font-semibold tracking-wide">HexAuth</span>
-                </a>
-            </div>
-
-            <div class="text-center mb-8">
-                <h1 id="form-title" class="text-2xl font-semibold tracking-tight text-[var(--text)]">Welcome back</h1>
-                <p id="helper-copy" class="mt-2 text-sm text-[var(--muted)]">Sign in to your account</p>
-            </div>
-
-            <div id="client-meta" class="mb-6 hidden rounded-lg border border-[var(--stroke)] bg-[var(--surface-soft)] p-4 text-sm text-[var(--muted)] text-center"></div>
-
-            <form id="signin-form" class="space-y-4">
-                <div>
-                    <label class="mb-1.5 block text-sm font-medium text-[var(--text)]" for="email">Email address</label>
-                    <input id="email" name="email" type="email" required class="w-full rounded-lg border border-[var(--stroke)] bg-[var(--surface-soft)] px-3.5 py-2.5 outline-none transition focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]" placeholder="alex@example.com">
-                </div>
-                <div>
-                    <label class="mb-1.5 block text-sm font-medium text-[var(--text)]" for="password">Password</label>
-                    <input id="password" name="password" type="password" required class="w-full rounded-lg border border-[var(--stroke)] bg-[var(--surface-soft)] px-3.5 py-2.5 outline-none transition focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]" placeholder="••••••••">
-                </div>
-                <button id="submit-button" type="submit" class="mt-2 w-full rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-[var(--accent-contrast)] shadow-sm transition hover:opacity-90">Continue</button>
-            </form>
-
-            <div id="status" class="mt-4 hidden rounded-lg border border-transparent p-3 text-center text-sm font-medium"></div>
-
-            <p class="mt-6 text-center text-sm text-[var(--muted)]">
-                Don't have an account? <a id="signup-link" class="font-medium text-[var(--accent)] hover:underline" href="/user/register">Sign up</a>
-            </p>
-        </div>
+<body>
+    <main class="card">
+        <a class="brand" href="/">TokenShinobi</a>
+        <h1 id="form-title">Welcome,</h1>
+        <p id="helper-copy">sign in to continue</p>
+        <div id="client-meta" class="hidden"></div>
+        <form id="signin-form">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" required placeholder="alex@example.com">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" required placeholder="Password">
+            <button id="submit-button" type="submit">Sign in</button>
+        </form>
+        <div id="status" class="hidden"></div>
+        <p class="small">Don't have an account? <a id="signup-link" href="/user/register">Sign up</a></p>
     </main>
 
     <script>
         const tokenKey = "hexauth-access-token";
         const userKey = "hexauth-user";
-        
-        // Ensure theme matches standard site style (light by default for clean look)
+
         const applyTheme = () => {
             const themes = {
                 light: {
-                    "--bg": "#fafafa",
-                    "--text": "#111827",
-                    "--muted": "#6b7280",
-                    "--stroke": "#e5e7eb",
-                    "--surface": "#ffffff",
-                    "--surface-soft": "#f9fafb",
-                    "--accent": "#0f172a",
-                    "--accent-contrast": "#ffffff"
+                    "--bg": "#f1f0ea",
+                    "--panel": "#c5d8e8",
+                    "--ink": "#202226",
+                    "--muted": "#5f646f",
+                    "--field": "#f7f4ec",
+                    "--line": "#202226",
+                    "--accent": "#b9cde0"
                 }
             };
             Object.entries(themes.light).forEach(([key, value]) => document.documentElement.style.setProperty(key, value));
@@ -82,11 +75,14 @@
 
         const setStatus = (message, type) => {
             statusBox.textContent = message;
-            statusBox.className = "mt-4 rounded-lg border p-3 text-center text-sm font-medium";
+            statusBox.className = "";
             statusBox.classList.remove("hidden");
-            statusBox.style.borderColor = type === "error" ? "#fca5a5" : "var(--stroke)";
-            statusBox.style.background = type === "error" ? "#fef2f2" : "var(--surface-soft)";
-            statusBox.style.color = type === "error" ? "#991b1b" : "var(--text)";
+            statusBox.style.border = "2px solid";
+            statusBox.style.padding = "10px";
+            statusBox.style.borderRadius = "8px";
+            statusBox.style.borderColor = type === "error" ? "#8a1f1f" : "var(--line)";
+            statusBox.style.background = type === "error" ? "#efc8c8" : "var(--field)";
+            statusBox.style.color = "var(--ink)";
         };
 
         const persistSession = (result) => {
@@ -96,16 +92,16 @@
 
         const setOwnerMode = () => {
             signupLink.href = nextUrl ? `/user/register?next=${encodeURIComponent(nextUrl)}` : "/user/register";
-            formTitle.textContent = "Sign in";
-            helperCopy.textContent = "to continue to HexAuth";
-            submitButton.textContent = "Continue";
+            formTitle.textContent = "Welcome,";
+            helperCopy.textContent = "sign in to continue";
+            submitButton.textContent = "Sign in";
         };
 
         const setClientMode = async () => {
             signupLink.href = `/user/register${window.location.search}`;
-            formTitle.textContent = "Sign in";
-            helperCopy.textContent = "to continue to application";
-            submitButton.textContent = "Continue";
+            formTitle.textContent = "Welcome,";
+            helperCopy.textContent = "sign in to continue to app";
+            submitButton.textContent = "Sign in";
 
             try {
                 const response = await fetch(`/client/meta?client_id=${encodeURIComponent(clientId)}${redirectUri ? `&redirect_uri=${encodeURIComponent(redirectUri)}` : ""}`);
@@ -116,7 +112,7 @@
                 }
 
                 const { client } = result.data;
-                helperCopy.textContent = `to continue to ${client.applicationName}`;
+                helperCopy.textContent = `sign in to continue to ${client.applicationName}`;
             } catch (error) {
                 setStatus(error.message || "Unable to load project", "error");
             }
@@ -128,7 +124,7 @@
 
         form.addEventListener("submit", async (event) => {
             event.preventDefault();
-            setStatus(clientId ? "Signing in..." : "Signing in...", "info");
+            setStatus("Signing in...", "info");
 
             const payload = {
                 email: form.email.value,

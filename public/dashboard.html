@@ -3,93 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HexAuth | Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>TokenShinobi | Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=DM+Sans:wght@400;500;700&family=Fraunces:opsz,wght@9..144,300;9..144,400&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg:#f1f0ea; --ink:#202226; --muted:#5f646f; --line:#202226; --blue:#c5d8e8; --yellow:#f1df93; --violet:#cdbce6; --surface:#f7f4ec; --card-dark:#1f2125; }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: "DM Sans", sans-serif; color: var(--ink); background: radial-gradient(circle at 20% 0%, #f6f4ef 0%, var(--bg) 35%, #e7edf4 100%); }
+        .container { width: min(1200px, 93vw); margin: 0 auto; }
+        .nav { position: sticky; top: 0; z-index: 10; padding: 20px 0; backdrop-filter: blur(6px); }
+        .bar { background: #f3f4f6; border: 2px solid var(--line); border-radius: 999px; padding: 8px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+        .brand { font-family: "Abril Fatface", serif; font-size: 30px; margin-left: 12px; }
+        .toolbar { display: flex; align-items: center; gap: 8px; }
+        .ghost, .danger, .primary { border: 2px solid var(--line); border-radius: 999px; padding: 10px 16px; background: #fffaf0; font-weight: 700; cursor: pointer; font-family: inherit; }
+        .ghost { background: #f7f8fb; }
+        .danger { background: #f3c5c5; }
+        .primary { background: var(--blue); }
+        main { padding: 18px 0 48px; }
+        .hero { margin-bottom: 18px; }
+        .hero h1 { margin: 0; font-family: "Fraunces", serif; font-size: clamp(34px, 5vw, 58px); font-weight: 300; line-height: 1.1; }
+        .hero p { margin: 8px 0 0; color: var(--muted); }
+        .grid { display: grid; grid-template-columns: 380px 1fr; gap: 18px; }
+        .panel { border: 2px solid var(--line); border-radius: 24px; background: var(--surface); padding: 20px; }
+        .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+        .tile { border: 2px solid var(--line); border-radius: 18px; padding: 14px; }
+        .tile.blue { background: var(--blue); }
+        .tile.yellow { background: var(--yellow); }
+        .tile p { margin: 0; font-weight: 700; }
+        .tile h3 { margin: 4px 0 0; font-family: "Abril Fatface", serif; font-size: 34px; }
+        label { display:block; font-size:13px; text-transform: uppercase; font-weight: 700; letter-spacing: .04em; margin:10px 0 6px; }
+        input { width:100%; border:2px solid var(--line); border-radius: 12px; background: #fffdf4; padding: 11px 12px; font-size: 15px; }
+        .form-actions { display:flex; gap:8px; margin-top:12px; flex-wrap: wrap; }
+        #project-cancel.hidden, .hidden { display:none; }
+        #project-status { margin-top: 10px; }
+        #projects-empty { border:2px dashed var(--line); border-radius: 18px; padding: 18px; color: var(--muted); background: #f9f7ef; }
+        #projects-list article { border:2px solid var(--line); border-radius: 18px; padding: 14px; background: #fffdf4; margin-bottom: 12px; }
+        .article-head { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+        .article-actions { display:flex; gap:6px; flex-wrap: wrap; }
+        .article-actions button { border-radius: 12px; border: 2px solid var(--line); padding: 6px 10px; font-weight: 700; background: #f7f8fb; cursor: pointer; }
+        .article-actions .danger { background: #f3c5c5; }
+        .meta { color: var(--muted); margin: 6px 0; word-break: break-all; }
+        .copy-row { display:flex; gap:6px; flex-wrap: wrap; margin-top: 10px; }
+        .copy-row button { border-radius: 12px; border: 2px solid var(--line); padding: 6px 10px; font-weight: 700; background: var(--blue); cursor: pointer; }
+
+        @media (max-width: 990px) {
+            .grid { grid-template-columns: 1fr; }
+            .bar { border-radius: 20px; }
+            .brand { font-size: 24px; }
+        }
+    </style>
 </head>
-<body class="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors duration-300 font-sans">
-    <!-- Navbar -->
-    <nav class="sticky top-0 z-10 border-b border-[var(--stroke)] bg-[var(--surface)] shadow-sm">
-        <div class="mx-auto max-w-7xl px-5 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--accent)] text-sm font-bold text-[var(--accent-contrast)]">H</span>
-                <span class="font-semibold tracking-wide text-[var(--text)]">HexAuth Dashboard</span>
-            </div>
-            <div class="flex items-center gap-4">
-                <button id="theme-toggle" type="button" class="text-sm font-medium text-[var(--muted)] hover:text-[var(--text)] transition">Theme</button>
-                <div class="h-4 w-px bg-[var(--stroke)]"></div>
-                <div id="auth-badge" class="text-sm font-medium text-[var(--text)]">Session</div>
-                <button id="logout-button" type="button" class="rounded-lg bg-[var(--surface-soft)] border border-[var(--stroke)] px-3 py-1.5 text-sm font-medium text-[var(--text)] transition hover:bg-[var(--surface)]">Logout</button>
+<body>
+    <nav class="nav">
+        <div class="container bar">
+            <div class="brand">TokenShinobi</div>
+            <div class="toolbar">
+                <div id="auth-badge">Session</div>
+                <button id="logout-button" type="button" class="ghost">Logout</button>
             </div>
         </div>
     </nav>
 
-    <main class="relative mx-auto max-w-7xl px-5 py-8 sm:px-6 lg:px-8">
-        <div class="grid gap-8 lg:grid-cols-[1fr_2fr]">
-            <!-- Sidebar / Form Area -->
-            <div class="space-y-6">
-                <!-- Stats / Quick Info -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="rounded-xl border border-[var(--stroke)] bg-[var(--surface)] p-4 shadow-sm">
-                        <p class="text-xs font-medium uppercase tracking-wider text-[var(--muted)]">Apps</p>
-                        <p id="project-count" class="mt-1 text-2xl font-semibold">0</p>
+    <main class="container">
+        <section class="hero">
+            <h1>Dashboard for authentication projects</h1>
+            <p>Create apps, manage credentials, and ship login links quickly.</p>
+        </section>
+
+        <div class="grid">
+            <section class="panel">
+                <div class="stats">
+                    <div class="tile blue">
+                        <p>Apps</p>
+                        <h3 id="project-count">0</h3>
                     </div>
-                    <div class="rounded-xl border border-[var(--stroke)] bg-[var(--surface)] p-4 shadow-sm flex flex-col justify-center">
-                        <a href="/user/register" class="text-sm font-medium text-[var(--accent)] hover:underline flex items-center gap-1">
-                            New owner account &rarr;
-                        </a>
-                    </div>
+                    <a class="tile yellow" href="/user/register?switch=1" style="text-decoration:none;color:inherit;display:block;">
+                        <p>Owner setup</p>
+                        <h3 style="font-size:24px">New account</h3>
+                    </a>
                 </div>
 
-                <!-- Project Form -->
-                <div class="rounded-xl border border-[var(--stroke)] bg-[var(--surface)] p-5 shadow-sm sm:p-6">
-                    <div class="mb-6 flex items-center justify-between border-b border-[var(--stroke)] pb-4">
-                        <h2 class="text-lg font-semibold text-[var(--text)]">Project Studio</h2>
-                        <span id="form-mode-label" class="rounded-md bg-[var(--surface-soft)] px-2.5 py-1 text-xs font-medium text-[var(--muted)]">Create mode</span>
+                <h2 style="margin:0; font-family:'Abril Fatface',serif; font-size:34px;">Project Studio</h2>
+                <small id="form-mode-label" style="color:var(--muted)">Create mode</small>
+                <form id="project-form">
+                    <input id="project-edit-client-id" type="hidden">
+                    <label for="applicationName">Project name</label>
+                    <input id="applicationName" name="applicationName" type="text" required placeholder="Acme Dashboard">
+                    <label for="contactEmail">Contact email</label>
+                    <input id="contactEmail" name="contactEmail" type="email" required placeholder="team@acme.com">
+                    <label for="applicationUrl">Project URL</label>
+                    <input id="applicationUrl" name="applicationUrl" type="url" required placeholder="https://app.example.com">
+                    <label for="redirectUrl">Redirect URL</label>
+                    <input id="redirectUrl" name="redirectUrl" type="url" required placeholder="https://app.example.com/auth/callback">
+                    <div class="form-actions">
+                        <button id="project-submit" class="primary" type="submit">Create project</button>
+                        <button id="project-cancel" class="ghost hidden" type="button">Cancel</button>
                     </div>
+                </form>
+                <div id="project-status" class="hidden"></div>
+            </section>
 
-                    <form id="project-form" class="space-y-4">
-                        <input id="project-edit-client-id" type="hidden">
-                        <div>
-                            <label class="mb-1.5 block text-sm font-medium text-[var(--text)]" for="applicationName">Project name</label>
-                            <input id="applicationName" name="applicationName" type="text" required class="w-full rounded-lg border border-[var(--stroke)] bg-[var(--surface-soft)] px-3.5 py-2.5 outline-none transition focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]" placeholder="Acme Dashboard">
-                        </div>
-                        <div>
-                            <label class="mb-1.5 block text-sm font-medium text-[var(--text)]" for="contactEmail">Contact email</label>
-                            <input id="contactEmail" name="contactEmail" type="email" required class="w-full rounded-lg border border-[var(--stroke)] bg-[var(--surface-soft)] px-3.5 py-2.5 outline-none transition focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]" placeholder="team@acme.com">
-                        </div>
-                        <div>
-                            <label class="mb-1.5 block text-sm font-medium text-[var(--text)]" for="applicationUrl">Project URL</label>
-                            <input id="applicationUrl" name="applicationUrl" type="url" required class="w-full rounded-lg border border-[var(--stroke)] bg-[var(--surface-soft)] px-3.5 py-2.5 outline-none transition focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]" placeholder="https://app.example.com">
-                        </div>
-                        <div>
-                            <label class="mb-1.5 block text-sm font-medium text-[var(--text)]" for="redirectUrl">Redirect URL</label>
-                            <input id="redirectUrl" name="redirectUrl" type="url" required class="w-full rounded-lg border border-[var(--stroke)] bg-[var(--surface-soft)] px-3.5 py-2.5 outline-none transition focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]" placeholder="https://app.example.com/auth/callback">
-                        </div>
-                        <div class="pt-2 flex flex-col gap-3 sm:flex-row">
-                            <button id="project-submit" type="submit" class="flex-1 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-[var(--accent-contrast)] shadow-sm transition hover:opacity-90">Create project</button>
-                            <button id="project-cancel" type="button" class="hidden rounded-lg border border-[var(--stroke)] bg-[var(--surface-soft)] px-4 py-2.5 text-sm font-semibold text-[var(--text)] transition hover:bg-[var(--surface)]">Cancel</button>
-                        </div>
-                    </form>
-
-                    <div id="project-status" class="mt-4 hidden rounded-lg border border-transparent p-3 text-sm font-medium text-center"></div>
+            <section class="panel">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <h2 style="margin:0; font-family:'Abril Fatface',serif; font-size:34px;">Your Applications</h2>
+                    <small style="color:var(--muted)">Manage credentials and links</small>
                 </div>
-            </div>
-
-            <!-- Projects Area -->
-            <div class="space-y-6">
-                <div class="rounded-xl border border-[var(--stroke)] bg-[var(--surface)] p-5 shadow-sm sm:p-6 min-h-[500px]">
-                    <div class="mb-6 flex items-center justify-between border-b border-[var(--stroke)] pb-4">
-                        <h2 class="text-lg font-semibold text-[var(--text)]">Your Applications</h2>
-                        <span class="text-sm text-[var(--muted)]">Manage credentials & links</span>
-                    </div>
-
-                    <div id="projects-empty" class="rounded-xl border border-dashed border-[var(--stroke)] bg-[var(--surface-soft)] p-8 text-center text-sm text-[var(--muted)]">
-                        No projects yet. Create your first application on the left to get started.
-                    </div>
-                    
-                    <div id="projects-list" class="hidden space-y-6"></div>
-                </div>
-            </div>
+                <div id="projects-empty">No projects yet. Create your first application.</div>
+                <div id="projects-list" class="hidden"></div>
+            </section>
         </div>
     </main>
 
@@ -99,28 +121,17 @@
         const themeStorageKey = "hexauth-theme";
         const themes = {
             light: {
-                "--bg": "#f9fafb",
-                "--text": "#111827",
-                "--muted": "#6b7280",
-                "--stroke": "#e5e7eb",
-                "--surface": "#ffffff",
-                "--surface-soft": "#f3f4f6",
-                "--accent": "#0f172a",
-                "--accent-contrast": "#ffffff"
-            },
-            dark: {
-                "--bg": "#111827",
-                "--text": "#f9fafb",
-                "--muted": "#9ca3af",
-                "--stroke": "#374151",
-                "--surface": "#1f2937",
-                "--surface-soft": "#111827",
-                "--accent": "#38bdf8",
-                "--accent-contrast": "#0f172a"
+                "--bg": "#f1f0ea",
+                "--ink": "#202226",
+                "--muted": "#5f646f",
+                "--line": "#202226",
+                "--blue": "#c5d8e8",
+                "--yellow": "#f1df93",
+                "--violet": "#cdbce6",
+                "--surface": "#f7f4ec",
+                "--card-dark": "#1f2125"
             }
         };
-
-        const themeToggle = document.getElementById("theme-toggle");
         const logoutButton = document.getElementById("logout-button");
         const projectForm = document.getElementById("project-form");
         const projectStatus = document.getElementById("project-status");
@@ -133,12 +144,11 @@
         const projectEditClientId = document.getElementById("project-edit-client-id");
         const formModeLabel = document.getElementById("form-mode-label");
 
-        const getTheme = () => localStorage.getItem(themeStorageKey) || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        const getTheme = () => "light";
         const setTheme = (theme) => {
             Object.entries(themes[theme]).forEach(([key, value]) => document.documentElement.style.setProperty(key, value));
             document.documentElement.dataset.theme = theme;
             localStorage.setItem(themeStorageKey, theme);
-            themeToggle.textContent = theme === "dark" ? "Light Mode" : "Dark Mode";
         };
 
         const getToken = () => localStorage.getItem(tokenKey);
@@ -154,13 +164,15 @@
 
         const setStatus = (element, message, type) => {
             element.textContent = message;
-            element.className = "mt-4 rounded-lg border p-3 text-center text-sm font-medium";
+            element.className = "";
             element.classList.remove("hidden");
-            element.style.borderColor = type === "error" ? "#fca5a5" : "var(--stroke)";
-            element.style.background = type === "error" ? "#fef2f2" : "var(--surface-soft)";
-            element.style.color = type === "error" ? "#991b1b" : "var(--text)";
-            
-            // Auto hide success messages
+            element.style.border = "2px solid";
+            element.style.padding = "10px";
+            element.style.borderRadius = "10px";
+            element.style.borderColor = type === "error" ? "#8a1f1f" : "var(--line)";
+            element.style.background = type === "error" ? "#efc8c8" : "#fffdf4";
+            element.style.color = "var(--ink)";
+
             if (type !== "error") {
                 setTimeout(() => {
                     element.classList.add("hidden");
@@ -182,7 +194,7 @@
             const signinUrl = `${window.location.origin}/user/login?client_id=${encodeURIComponent(project.clientId)}&redirect_uri=${encodeURIComponent(project.redirectUrl)}`;
             const signupUrl = `${window.location.origin}/user/register?client_id=${encodeURIComponent(project.clientId)}&redirect_uri=${encodeURIComponent(project.redirectUrl)}`;
             const content = [
-                `HexAuth Project: ${project.applicationName}`,
+                `TokenShinobi Project: ${project.applicationName}`,
                 `Client ID: ${project.clientId}`,
                 `Client Secret: ${project.clientSecret}`,
                 `Application URL: ${project.applicationUrl}`,
@@ -194,7 +206,7 @@
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.href = url;
-            link.download = `${project.applicationName.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "hexauth-project"}-credentials.txt`;
+            link.download = `${project.applicationName.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "tokenshinobi-project"}-credentials.txt`;
             link.click();
             URL.revokeObjectURL(url);
         };
@@ -231,52 +243,29 @@
 
             projectsList.innerHTML = projects.map((project) => {
                 const signinUrl = `${window.location.origin}/user/login?client_id=${encodeURIComponent(project.clientId)}&redirect_uri=${encodeURIComponent(project.redirectUrl)}`;
-                const signupUrl = `${window.location.origin}/user/register?client_id=${encodeURIComponent(project.clientId)}&redirect_uri=${encodeURIComponent(project.redirectUrl)}`;
 
                 return `
-                    <article class="rounded-xl border border-[var(--stroke)] bg-[var(--surface-soft)] p-5">
-                        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-[var(--stroke)] pb-4 mb-4">
+                    <article>
+                        <div class="article-head">
                             <div>
-                                <h3 class="text-xl font-semibold text-[var(--text)]">${project.applicationName}</h3>
-                                <p class="text-sm text-[var(--muted)] mt-1">${project.contactEmail}</p>
+                                <h3 style="margin:0; font-family:'Abril Fatface',serif; font-size:32px;">${project.applicationName}</h3>
+                                <small style="color:var(--muted)">${project.contactEmail}</small>
                             </div>
-                            <div class="flex flex-wrap gap-2">
-                                <button data-edit="${project.clientId}" class="rounded-lg border border-[var(--stroke)] bg-[var(--surface)] px-3 py-1.5 text-sm font-medium hover:bg-[var(--surface-soft)] transition">Edit</button>
-                                <button data-download="${project.clientId}" class="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-[var(--accent-contrast)] hover:opacity-90 transition">Download</button>
-                                <button data-delete="${project.clientId}" class="rounded-lg border border-red-200 bg-red-50 text-red-600 px-3 py-1.5 text-sm font-medium hover:bg-red-100 transition">Delete</button>
+                            <div class="article-actions">
+                                <button data-edit="${project.clientId}">Edit</button>
+                                <button data-download="${project.clientId}">Download</button>
+                                <button data-delete="${project.clientId}" class="danger">Delete</button>
                             </div>
                         </div>
-
-                        <div class="grid gap-4 sm:grid-cols-2">
-                            <div class="space-y-1">
-                                <p class="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Client ID</p>
-                                <div class="flex items-center justify-between rounded-lg border border-[var(--stroke)] bg-[var(--surface)] p-2">
-                                    <p class="truncate text-sm font-mono text-[var(--text)] mr-2">${project.clientId}</p>
-                                    <button data-copy="clientId" data-project="${project.clientId}" class="text-[var(--accent)] hover:text-opacity-80 p-1" title="Copy"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
-                                </div>
-                            </div>
-                            <div class="space-y-1">
-                                <p class="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Client Secret</p>
-                                <div class="flex items-center justify-between rounded-lg border border-[var(--stroke)] bg-[var(--surface)] p-2">
-                                    <p class="truncate text-sm font-mono text-[var(--text)] mr-2">****************</p>
-                                    <button data-copy="clientSecret" data-project="${project.clientId}" class="text-[var(--accent)] hover:text-opacity-80 p-1" title="Copy"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
-                                </div>
-                            </div>
-                            <div class="space-y-1">
-                                <p class="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">App URL</p>
-                                <p class="text-sm text-[var(--text)] truncate" title="${project.applicationUrl}">${project.applicationUrl}</p>
-                            </div>
-                            <div class="space-y-1">
-                                <p class="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Redirect URL</p>
-                                <p class="text-sm text-[var(--text)] truncate" title="${project.redirectUrl}">${project.redirectUrl}</p>
-                            </div>
-                            <div class="space-y-1 sm:col-span-2 mt-2">
-                                <p class="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Login Link (SSO)</p>
-                                <div class="flex items-center justify-between rounded-lg border border-[var(--stroke)] bg-[var(--surface)] p-2">
-                                    <p class="truncate text-sm text-[var(--muted)] mr-2">${signinUrl}</p>
-                                    <button data-copy="signinUrl" data-project="${project.clientId}" class="text-xs font-medium text-[var(--accent)] whitespace-nowrap hover:underline">Copy Link</button>
-                                </div>
-                            </div>
+                        <p class="meta"><strong>Client ID:</strong> ${project.clientId}</p>
+                        <p class="meta"><strong>Client Secret:</strong> ************</p>
+                        <p class="meta"><strong>App URL:</strong> ${project.applicationUrl}</p>
+                        <p class="meta"><strong>Redirect URL:</strong> ${project.redirectUrl}</p>
+                        <p class="meta"><strong>Signin URL:</strong> ${signinUrl}</p>
+                        <div class="copy-row">
+                          <button data-copy="clientId" data-project="${project.clientId}">Copy Client ID</button>
+                          <button data-copy="clientSecret" data-project="${project.clientId}">Copy Secret</button>
+                          <button data-copy="signinUrl" data-project="${project.clientId}">Copy Login URL</button>
                         </div>
                     </article>
                 `;
@@ -415,7 +404,6 @@
         });
 
         setTheme(getTheme());
-        themeToggle.addEventListener("click", () => setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
         loadProjects();
     </script>
 </body>
