@@ -6,7 +6,7 @@ import { ensureDatabaseSchema } from "./db/config.js";
 const startServer = async () => {
     await ensureDatabaseSchema();
     const server = createServer(createApplication())
-    const PORT = process?.env?.PORT;
+    const PORT = Number(process.env.PORT) || 8000;
     server.listen(PORT, () => {
         console.log("Server is running at PORT", PORT)
     })
