@@ -7,8 +7,14 @@ import fs from "node:fs"
 import path from "node:path"
 
 const privateKeyPath = path.resolve(process.cwd(), "cert", "private.pem")
+const normalizePem = (value: string) => value.replace(/\\n/g, "\n").trim()
 
 const getPrivateKey = () => {
+    const envPrivateKey = process.env.JWT_PRIVATE_KEY
+    if (envPrivateKey && envPrivateKey.trim().length > 0) {
+        return normalizePem(envPrivateKey)
+    }
+
     try {
         return fs.readFileSync(privateKeyPath, "utf8")
     } catch {
@@ -94,5 +100,3 @@ export const generateIdToken = (
         } as SignOptions
     );
 };
-
-

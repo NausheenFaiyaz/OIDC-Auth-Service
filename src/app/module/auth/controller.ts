@@ -289,10 +289,13 @@ export const userinfo = async (req: AuthenticatedRequest, res: Response) => {
 };
 
 export const certs = (_: Request, res: Response) => {
-    const publicKey = fs.readFileSync(
-        path.resolve(process.cwd(), "cert", "public.pem"),
-        "utf8"
-    );
+    const envPublicKey = process.env.JWT_PUBLIC_KEY?.replace(/\\n/g, "\n").trim();
+    const publicKey = envPublicKey && envPublicKey.length > 0
+        ? envPublicKey
+        : fs.readFileSync(
+            path.resolve(process.cwd(), "cert", "public.pem"),
+            "utf8"
+        );
     const jwk = createPublicKey(publicKey).export({ format: "jwk" }) as JsonWebKey;
 
     return res.status(200).json({
@@ -327,6 +330,9 @@ export const openIdConfig = (req: Request, res: Response) => {
         token_endpoint_auth_methods_supported: ["client_secret_post"]
     });
 };
+
+
+
 
 
 
