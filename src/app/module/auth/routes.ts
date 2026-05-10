@@ -13,6 +13,7 @@ import {
     signin,
     signup,
     token,
+    tokenInfo,
     updateOAuthClient,
     userLoginPage,
     userRegisterPage,
@@ -36,6 +37,7 @@ router.get("/user/register", userRegisterPage);
 router.post("/user/register", signup);
 router.get("/user/login", userLoginPage);
 router.post("/user/login", signin);
+router.get("/token", tokenInfo);
 router.post("/token", token);
 router.get("/userinfo", verifyAccessToken, userinfo);
 router.get("/certs", certs);

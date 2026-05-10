@@ -318,6 +318,17 @@ export const token = async (req: Request, res: Response) => {
     return res.status(200).json(response);
 };
 
+export const tokenInfo = (_: Request, res: Response) => {
+    return res.status(200).json({
+        success: true,
+        message: "Use POST /token for authorization code exchange",
+        method: "POST",
+        content_type: "application/x-www-form-urlencoded",
+        required: ["code", "client_id", "client_secret"],
+        optional: ["redirect_uri", "code_verifier", "grant_type=authorization_code"]
+    });
+};
+
 export const userinfo = async (req: AuthenticatedRequest, res: Response) => {
     const response = await userInfoService(requireUserId(req));
     return res.status(200).json({
