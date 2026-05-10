@@ -17,6 +17,11 @@ export interface AuthenticatedRequest extends Request {
 const publicKeyPath = path.resolve(process.cwd(), "cert", "public.pem");
 
 const getPublicKey = () => {
+    const envPublicKey = process.env.JWT_PUBLIC_KEY;
+    if (envPublicKey && envPublicKey.trim().length > 0) {
+        return envPublicKey.replace(/\\n/g, "\n").trim();
+    }
+
     try {
         return fs.readFileSync(publicKeyPath, "utf8");
     } catch {
@@ -72,5 +77,3 @@ export const verifyAccessToken = (
         throw error;
     }
 }
-
-
