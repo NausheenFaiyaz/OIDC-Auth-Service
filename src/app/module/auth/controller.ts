@@ -44,6 +44,34 @@ const getRequestValue = (value: unknown) => {
 
 const getBody = (req: Request) => (req.body && typeof req.body === "object" ? req.body as Record<string, unknown> : {});
 
+const getBasicClientCredentials = (authorizationHeader?: string) => {
+    if (!authorizationHeader?.startsWith("Basic ")) {
+        return null;
+    }
+
+    const encodedCredentials = authorizationHeader.slice(6).trim();
+
+    try {
+        const decodedCredentials = Buffer.from(encodedCredentials, "base64").toString("utf8");
+        const separatorIndex = decodedCredentials.indexOf(":");
+
+        if (separatorIndex <= 0) {
+            return null;
+        }
+
+        const clientId = decodedCredentials.slice(0, separatorIndex).trim();
+        const clientSecret = decodedCredentials.slice(separatorIndex + 1).trim();
+
+        if (!clientId || !clientSecret) {
+            return null;
+        }
+
+        return { clientId, clientSecret };
+    } catch {
+        return null;
+    }
+};
+
 const getAuthorizationPayload = (req: Request) => {
     const body = getBody(req);
 
@@ -253,10 +281,12 @@ export const signin = async (req: Request, res: Response) => {
 
 export const token = async (req: Request, res: Response) => {
     const body = getBody(req);
+    const basicCredentials = getBasicClientCredentials(req.headers.authorization);
     const payload = {
         ...body,
-        clientId: getRequestValue(body.clientId) ?? getRequestValue(body.client_id),
-        clientSecret: getRequestValue(body.clientSecret) ?? getRequestValue(body.client_secret),
+        grantType: getRequestValue(body.grantType) ?? getRequestValue(body.grant_type),
+        clientId: getRequestValue(body.clientId) ?? getRequestValue(body.client_id) ?? basicCredentials?.clientId,
+        clientSecret: getRequestValue(body.clientSecret) ?? getRequestValue(body.client_secret) ?? basicCredentials?.clientSecret,
         redirectUri: getRequestValue(body.redirectUri) ?? getRequestValue(body.redirect_uri),
         codeVerifier: getRequestValue(body.codeVerifier) ?? getRequestValue(body.code_verifier)
     };
@@ -266,7 +296,16 @@ export const token = async (req: Request, res: Response) => {
         throw ApiError.badRequest("Validation Error");
     }
 
-    const { clientId, clientSecret, code, redirectUri, codeVerifier } = result.data;
+    const { clientId, clientSecret, code, redirectUri, codeVerifier, grantType } = result.data;
+
+    if (grantType && grantType !== "authorization_code") {
+        throw ApiError.badRequest("Unsupported grant_type");
+    }
+
+    if (!clientSecret) {
+        throw ApiError.unauthorized("Invalid client credentials");
+    }
+
     const issuer = `${req.protocol}://${req.get("host") ?? "localhost:8000"}`;
     const response = await exchangeAuthorizationCodeService(
         code,
@@ -327,7 +366,7 @@ export const openIdConfig = (req: Request, res: Response) => {
         claims_supported: ["sub", "email", "name"],
         id_token_signing_alg_values_supported: ["RS256"],
         code_challenge_methods_supported: ["S256", "plain"],
-        token_endpoint_auth_methods_supported: ["client_secret_post"]
+        token_endpoint_auth_methods_supported: ["client_secret_post", "client_secret_basic"]
     });
 };
 
