@@ -47,11 +47,23 @@ export const dashboardSignup = z.object({
     password: z.string().min(5).max(64)
 })
 
-export const tokenExchange = z.object({
-    code: z.string(),
-    clientId: z.string(),
-    clientSecret: z.string().optional(),
-    grantType: z.literal("authorization_code").optional(),
-    redirectUri: z.string().url().optional(),
-    codeVerifier: z.string().min(43).max(128).optional()
-})
+export const tokenExchange = z.union([
+    z.object({
+        code: z.string(),
+        clientId: z.string(),
+        clientSecret: z.string().optional(),
+        grantType: z.literal("authorization_code").optional(),
+        redirectUri: z.string().url().optional(),
+        codeVerifier: z.string().min(43).max(128).optional(),
+        refreshToken: z.string().optional()
+    }),
+    z.object({
+        clientId: z.string(),
+        clientSecret: z.string().optional(),
+        grantType: z.literal("refresh_token"),
+        refreshToken: z.string(),
+        code: z.string().optional(),
+        redirectUri: z.string().url().optional(),
+        codeVerifier: z.string().min(43).max(128).optional()
+    })
+])

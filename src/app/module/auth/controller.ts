@@ -13,7 +13,8 @@ import {
     signinService,
     signupService,
     updateOAuthClientService,
-    userInfoService
+    userInfoService,
+    refreshAccessTokenService
 } from "./services.js";
 import ApiError from "../../common/utils/ApiError.js";
 import ApiResponse from "../../common/utils/ApiResponse.js";
@@ -282,13 +283,15 @@ export const signin = async (req: Request, res: Response) => {
 export const token = async (req: Request, res: Response) => {
     const body = getBody(req);
     const basicCredentials = getBasicClientCredentials(req.headers.authorization);
+    const grantType = getRequestValue(body.grantType) ?? getRequestValue(body.grant_type);
     const payload = {
         ...body,
-        grantType: getRequestValue(body.grantType) ?? getRequestValue(body.grant_type),
+        grantType,
         clientId: getRequestValue(body.clientId) ?? getRequestValue(body.client_id) ?? basicCredentials?.clientId,
         clientSecret: getRequestValue(body.clientSecret) ?? getRequestValue(body.client_secret) ?? basicCredentials?.clientSecret,
         redirectUri: getRequestValue(body.redirectUri) ?? getRequestValue(body.redirect_uri),
-        codeVerifier: getRequestValue(body.codeVerifier) ?? getRequestValue(body.code_verifier)
+        codeVerifier: getRequestValue(body.codeVerifier) ?? getRequestValue(body.code_verifier),
+        refreshToken: getRequestValue(body.refreshToken) ?? getRequestValue(body.refresh_token)
     };
     const result = await tokenExchange.safeParseAsync(payload);
 
@@ -296,36 +299,42 @@ export const token = async (req: Request, res: Response) => {
         throw ApiError.badRequest("Validation Error");
     }
 
-    const { clientId, clientSecret, code, redirectUri, codeVerifier, grantType } = result.data;
-
-    if (grantType && grantType !== "authorization_code") {
-        throw ApiError.badRequest("Unsupported grant_type");
-    }
+    const { clientId, clientSecret } = result.data;
 
     if (!clientSecret) {
         throw ApiError.unauthorized("Invalid client credentials");
     }
 
+    if (grantType === "refresh_token") {
+        const refreshToken = getRequestValue(result.data.refreshToken);
+        if (!refreshToken) {
+            throw ApiError.badRequest("refresh_token is required");
+        }
+
+        const response = await refreshAccessTokenService(clientId, clientSecret, refreshToken);
+        return res.status(200).json(response);
+    }
+
+    const code = getRequestValue(result.data.code);
+    if (!code) {
+        throw ApiError.badRequest("code is required");
+    }
+
+    const redirectUri = getRequestValue(result.data.redirectUri);
+    const codeVerifier = getRequestValue(result.data.codeVerifier);
     const issuer = `${req.protocol}://${req.get("host") ?? "localhost:8000"}`;
-    const response = await exchangeAuthorizationCodeService(
-        code,
-        clientId,
-        clientSecret,
-        redirectUri,
-        codeVerifier,
-        issuer
-    );
+    const response = await exchangeAuthorizationCodeService(code, clientId, clientSecret, redirectUri, codeVerifier, issuer);
     return res.status(200).json(response);
 };
 
 export const tokenInfo = (_: Request, res: Response) => {
     return res.status(200).json({
         success: true,
-        message: "Use POST /token for authorization code exchange",
+        message: "Use POST /token for authorization_code or refresh_token exchange",
         method: "POST",
         content_type: "application/x-www-form-urlencoded",
-        required: ["code", "client_id", "client_secret"],
-        optional: ["redirect_uri", "code_verifier", "grant_type=authorization_code"]
+        required: ["client_id", "client_secret", "grant_type"],
+        optional: ["code", "redirect_uri", "code_verifier", "refresh_token"]
     });
 };
 
@@ -371,7 +380,7 @@ export const openIdConfig = (req: Request, res: Response) => {
         registration_endpoint: `${baseURL}/client/register`,
         response_types_supported: ["code"],
         response_modes_supported: ["query"],
-        grant_types_supported: ["authorization_code"],
+        grant_types_supported: ["authorization_code", "refresh_token"],
         scopes_supported: ["openid", "profile", "email"],
         subject_types_supported: ["public"],
         claims_supported: ["sub", "email", "name"],

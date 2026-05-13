@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 import { db } from "../../../db/config.js";
 import { authorizationCodes, oAuthClients, users } from "../../../db/schema.js";
-import { generateIdToken, generateTokens } from "../../common/utils/jwt.utils.js";
+import { generateIdToken, generateTokens, verifyRefreshToken } from "../../common/utils/jwt.utils.js";
 import ApiError from "../../common/utils/ApiError.js";
 
 const sanitizeUser = (user: any) => {
@@ -455,6 +455,32 @@ export const exchangeAuthorizationCodeService = async (
         token_type: "Bearer",
         expires_in: 900,
         user
+    };
+};
+
+export const refreshAccessTokenService = async (
+    clientId: string,
+    clientSecret: string,
+    refreshToken: string
+) => {
+    const client = await getOAuthClientByClientId(clientId);
+    if (client.clientSecret !== clientSecret) {
+        throw ApiError.unauthorized("Invalid client credentials");
+    }
+
+    const userId = verifyRefreshToken(refreshToken);
+    const foundUsers = await db.select().from(users).where(eq(users.id, userId));
+    const user = foundUsers[0];
+
+    if (!user || !user.refreshToken || user.refreshToken !== refreshToken) {
+        throw ApiError.unauthorized("Invalid refresh token");
+    }
+
+    const tokens = await generateTokens(user.id);
+    return {
+        ...tokens,
+        token_type: "Bearer",
+        expires_in: 900
     };
 };
 

@@ -7,6 +7,7 @@ import fs from "node:fs"
 import path from "node:path"
 
 const privateKeyPath = path.resolve(process.cwd(), "cert", "private.pem")
+const publicKeyPath = path.resolve(process.cwd(), "cert", "public.pem")
 const normalizePem = (value: string) => value.replace(/\\n/g, "\n").trim()
 
 const getPrivateKey = () => {
@@ -19,6 +20,19 @@ const getPrivateKey = () => {
         return fs.readFileSync(privateKeyPath, "utf8")
     } catch {
         throw ApiError.internal("Private key is not defined")
+    }
+}
+
+const getPublicKey = () => {
+    const envPublicKey = process.env.JWT_PUBLIC_KEY
+    if (envPublicKey && envPublicKey.trim().length > 0) {
+        return normalizePem(envPublicKey)
+    }
+
+    try {
+        return fs.readFileSync(publicKeyPath, "utf8")
+    } catch {
+        throw ApiError.internal("Public key is not defined")
     }
 }
 
@@ -100,3 +114,18 @@ export const generateIdToken = (
         } as SignOptions
     );
 };
+
+export const verifyRefreshToken = (refreshToken: string) => {
+    try {
+        const decoded = jwt.verify(refreshToken, getPublicKey(), { algorithms: ["RS256"] })
+        if (typeof decoded === "string" || typeof decoded.id !== "number") {
+            throw ApiError.unauthorized("Invalid refresh token")
+        }
+        return decoded.id
+    } catch (error) {
+        if (error instanceof ApiError) {
+            throw error
+        }
+        throw ApiError.unauthorized("Invalid refresh token")
+    }
+}
