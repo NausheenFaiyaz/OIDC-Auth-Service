@@ -9,7 +9,7 @@ const authClientFields = {
 }
 
 export const userSignup = z.object({
-    name: z.string().min(5).max(100),
+    name: z.string().min(3).max(100),
     email: z.string().email().max(322),
     password: z.string().min(5).max(64),
     ...authClientFields

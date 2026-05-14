@@ -44,6 +44,12 @@ const getRequestValue = (value: unknown) => {
 };
 
 const getBody = (req: Request) => (req.body && typeof req.body === "object" ? req.body as Record<string, unknown> : {});
+const formatValidationErrors = (issues: { path: PropertyKey[]; message: string; code: string }[]) =>
+    issues.map((issue) => ({
+        field: issue.path.length > 0 ? issue.path.map((segment) => String(segment)).join(".") : "body",
+        message: issue.message,
+        code: issue.code
+    }));
 
 const getBasicClientCredentials = (authorizationHeader?: string) => {
     if (!authorizationHeader?.startsWith("Basic ")) {
@@ -146,7 +152,7 @@ export const dashboardSignupController = async (req: Request, res: Response) => 
     const result = await dashboardSignup.safeParseAsync(req.body);
 
     if (!result.success) {
-        throw ApiError.badRequest("Validation Error");
+        throw ApiError.badRequest("Validation Error", formatValidationErrors(result.error.issues));
     }
 
     const { email, name, password } = result.data;
@@ -158,7 +164,7 @@ export const dashboardSigninController = async (req: Request, res: Response) => 
     const result = await dashboardLogin.safeParseAsync(req.body);
 
     if (!result.success) {
-        throw ApiError.badRequest("Validation Error");
+        throw ApiError.badRequest("Validation Error", formatValidationErrors(result.error.issues));
     }
 
     const { email, password } = result.data;
@@ -175,7 +181,7 @@ export const registerOAuthClient = async (req: AuthenticatedRequest, res: Respon
     const result = await oAuthClientRegister.safeParseAsync(req.body);
 
     if (!result.success) {
-        throw ApiError.badRequest("Validation Error");
+        throw ApiError.badRequest("Validation Error", formatValidationErrors(result.error.issues));
     }
 
     const { applicationName, applicationUrl, contactEmail, redirectUrl } = result.data;
@@ -194,7 +200,7 @@ export const updateOAuthClient = async (req: AuthenticatedRequest, res: Response
     const result = await oAuthClientUpdate.safeParseAsync(req.body);
 
     if (!result.success) {
-        throw ApiError.badRequest("Validation Error");
+        throw ApiError.badRequest("Validation Error", formatValidationErrors(result.error.issues));
     }
 
     const clientId = getRequestValue(req.params.clientId);
@@ -232,7 +238,7 @@ export const signup = async (req: Request, res: Response) => {
     const result = await userSignup.safeParseAsync(payload);
 
     if (!result.success) {
-        throw ApiError.badRequest("Validation Error");
+        throw ApiError.badRequest("Validation Error", formatValidationErrors(result.error.issues));
     }
 
     const { clientId, email, name, password, redirectUri, state, codeChallenge, codeChallengeMethod } = result.data;
@@ -261,7 +267,7 @@ export const signin = async (req: Request, res: Response) => {
     const result = await userLogin.safeParseAsync(payload);
 
     if (!result.success) {
-        throw ApiError.badRequest("Validation Error");
+        throw ApiError.badRequest("Validation Error", formatValidationErrors(result.error.issues));
     }
 
     const { clientId, email, password, redirectUri, state, codeChallenge, codeChallengeMethod } = result.data;
@@ -296,7 +302,7 @@ export const token = async (req: Request, res: Response) => {
     const result = await tokenExchange.safeParseAsync(payload);
 
     if (!result.success) {
-        throw ApiError.badRequest("Validation Error");
+        throw ApiError.badRequest("Validation Error", formatValidationErrors(result.error.issues));
     }
 
     const { clientId, clientSecret } = result.data;

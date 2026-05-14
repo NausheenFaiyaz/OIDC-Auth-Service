@@ -146,7 +146,13 @@
                 const result = await response.json();
 
                 if (!response.ok || !result.success) {
-                    throw new Error(result.message || "Register failed");
+                    const fieldError = Array.isArray(result.errors) && result.errors.length > 0
+                        ? result.errors[0]
+                        : null;
+                    const detail = fieldError?.field && fieldError?.message
+                        ? `${fieldError.field}: ${fieldError.message}`
+                        : (fieldError?.message || "");
+                    throw new Error(detail || result.message || "Register failed");
                 }
 
                 if (clientId) {
